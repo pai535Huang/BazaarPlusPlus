@@ -145,6 +145,26 @@ pub(crate) fn fallback_game_candidates() -> Vec<PathBuf> {
         }
     }
 
+    #[cfg(target_os = "linux")]
+    {
+        if let Some(home) = dirs::home_dir() {
+            push_unique(
+                &mut candidates,
+                home.join(".local/share/Steam/steamapps/common/The Bazaar"),
+            );
+            push_unique(
+                &mut candidates,
+                home.join(".steam/steam/steamapps/common/The Bazaar"),
+            );
+            push_unique(
+                &mut candidates,
+                home.join(
+                    ".var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/common/The Bazaar",
+                ),
+            );
+        }
+    }
+
     #[cfg(target_os = "windows")]
     {
         for var_name in ["APPDATA", "LOCALAPPDATA"] {

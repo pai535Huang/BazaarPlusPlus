@@ -13,6 +13,7 @@ export const sharedBundledZipPath = 'BepInExSource/BepInEx.zip';
 const platformAliases = new Map([
   ['darwin', 'macos'],
   ['macos', 'macos'],
+  ['linux', 'linux'],
   ['win32', 'windows'],
   ['windows', 'windows']
 ]);
@@ -31,7 +32,7 @@ const managedPluginDependencies = [
 
 export function resolveTargetPlatforms(platformEnv) {
   if (!platformEnv) {
-    return ['macos', 'windows'];
+    return ['macos', 'windows', 'linux'];
   }
 
   const platform = platformAliases.get(platformEnv);
@@ -54,7 +55,7 @@ export function requiredEntriesForPlatform(platform) {
     ];
   }
 
-  if (platform === 'windows') {
+  if (platform === 'windows' || platform === 'linux') {
     return [
       'winhttp.dll',
       'doorstop_config.ini',

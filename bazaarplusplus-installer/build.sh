@@ -14,9 +14,9 @@ Usage:
 
   ./build.sh --prod
       Build release artifacts for the current host platform.
-      On macOS this produces an arm64 app bundle.
+      On Linux this produces a deb package; on macOS this produces an arm64 app bundle.
       Also runs version sync, prebuild checks, and loads updater signing
-      env vars from signing-secrets/ when not already exported.
+      env vars from signing-secrets/ when not already exported on signed platforms.
 
   ./build.sh --upload
       Upload the current host platform release artifacts to Cloudflare R2
@@ -34,8 +34,11 @@ EOF
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WINDOWS_CONFIG="$SCRIPT_DIR/src-tauri/tauri.windows.conf.json"
 MACOS_CONFIG="$SCRIPT_DIR/src-tauri/tauri.macos.conf.json"
+LINUX_CONFIG="$SCRIPT_DIR/src-tauri/tauri.linux.conf.json"
 WINDOWS_ZIP="$SCRIPT_DIR/src-tauri/resources/BepInExSource/windows/BepInEx.zip"
 MACOS_ZIP="$SCRIPT_DIR/src-tauri/resources/BepInExSource/macos/BepInEx.zip"
+LINUX_ZIP="$SCRIPT_DIR/src-tauri/resources/BepInExSource/linux/BepInEx.zip"
+WINDOWS_PAYLOAD_SOURCE="$SCRIPT_DIR/src-tauri/resources/SourceForBuild/windows"
 MACOS_TRAMPOLINE_STUB="$SCRIPT_DIR/src-tauri/resources/Trampoline/macos/bpp_launcher"
 SIGNING_SECRETS_DIR="$SCRIPT_DIR/signing-secrets"
 SIGNING_KEY_PATH="$SIGNING_SECRETS_DIR/tauri-updater.key"
@@ -133,6 +136,7 @@ load_required_secret_env() {
 current_platform() {
     case "$(uname -s)" in
         Darwin) echo "macos" ;;
+        Linux) echo "linux" ;;
         MINGW*|MSYS*|CYGWIN*|Windows_NT) echo "windows" ;;
         *) echo "unknown" ;;
     esac
@@ -162,6 +166,9 @@ platform_r2_key() {
         macos)
             printf '%s' "darwin-aarch64"
             ;;
+        linux)
+            printf '%s' "linux-x86_64"
+            ;;
         *)
             echo "Error: Unsupported platform for upload: $platform" >&2
             exit 1
@@ -179,6 +186,9 @@ bundle_root_for_platform() {
         macos)
             printf '%s' "$SCRIPT_DIR/src-tauri/target/aarch64-apple-darwin/release/bundle"
             ;;
+        linux)
+            printf '%s' "$SCRIPT_DIR/src-tauri/target/release/bundle"
+            ;;
         *)
             echo "Error: Unsupported platform bundle root: $platform" >&2
             exit 1
@@ -195,6 +205,9 @@ find_installer_artifact() {
             ;;
         macos)
             find "$SCRIPT_DIR/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg" -maxdepth 1 -type f -name '*.dmg' | sort | head -n 1
+            ;;
+        linux)
+            find "$SCRIPT_DIR/src-tauri/target/release/bundle/deb" -maxdepth 1 -type f -name '*.deb' | sort | head -n 1
             ;;
         *)
             echo "Error: Unsupported platform installer artifact lookup: $platform" >&2
@@ -463,10 +476,31 @@ create_zip_from_directory() {
     local source_dir="$1"
     local output_zip="$2"
 
-    (
-        cd "$source_dir"
-        zip -qry -X "$output_zip" .
-    )
+    mkdir -p "$(dirname "$output_zip")"
+    if command -v zip &>/dev/null; then
+        (
+            cd "$source_dir"
+            zip -qry -X "$output_zip" .
+        )
+    elif command -v 7z &>/dev/null; then
+        rm -f "$output_zip"
+        (
+            cd "$source_dir"
+            7z a -tzip -mx=9 "$output_zip" . >/dev/null
+        )
+    else
+        echo "Error: zip or 7z not found. Install one before building." >&2
+        exit 1
+    fi
+}
+
+prepare_linux_resource_zip() {
+    assert_file "$WINDOWS_PAYLOAD_SOURCE/winhttp.dll" "Windows/Proton payload winhttp.dll"
+    assert_file "$WINDOWS_PAYLOAD_SOURCE/doorstop_config.ini" "Windows/Proton payload doorstop_config.ini"
+    assert_file "$WINDOWS_PAYLOAD_SOURCE/BepInEx/plugins/BazaarPlusPlus.dll" "built BazaarPlusPlus plugin"
+
+    invoke_step "Preparing Linux/Proton resource zip from Windows payload" \
+        create_zip_from_directory "$WINDOWS_PAYLOAD_SOURCE" "$LINUX_ZIP"
 }
 
 prepare_signed_macos_resource_zip() {
@@ -500,8 +534,14 @@ prepare_signed_macos_resource_zip() {
 }
 
 run_release_prechecks() {
+    local platform="$1"
+
+    if [ "$platform" = "linux" ]; then
+        prepare_linux_resource_zip
+    fi
+
     invoke_step "Synchronizing package versions" node scripts/version-sync.mjs
-    invoke_step "Running prebuild checks" npm run prebuild-check
+    invoke_step "Running prebuild checks" env TAURI_ENV_PLATFORM="$platform" npm run prebuild-check
 }
 
 upload_r2_object() {
@@ -631,6 +671,14 @@ build_prod() {
             release_binary="$SCRIPT_DIR/src-tauri/target/aarch64-apple-darwin/release/bppinstaller"
             tauri_target="aarch64-apple-darwin"
             ;;
+        linux)
+            config="$LINUX_CONFIG"
+            resource_zip="$LINUX_ZIP"
+            bundle_target="deb"
+            bundle_output="$SCRIPT_DIR/src-tauri/target/release/bundle/deb"
+            bundle_cleanup_path="$bundle_output"
+            release_binary="$SCRIPT_DIR/src-tauri/target/release/bppinstaller"
+            ;;
         *)
             echo "Error: Unsupported platform: $platform" >&2
             exit 1
@@ -638,6 +686,9 @@ build_prod() {
     esac
 
     assert_file "$config" "$platform Tauri config"
+    if [ "$platform" = "linux" ]; then
+        prepare_linux_resource_zip
+    fi
     assert_file "$resource_zip" "$platform resource zip"
 
     if [ -d "$bundle_cleanup_path" ]; then
@@ -751,11 +802,13 @@ main() {
             assert_command rustup "Install rustup first so the macOS Rust target can be managed."
         fi
 
-        load_updater_signing_env
+        if [ "$platform" != "linux" ]; then
+            load_updater_signing_env
+        fi
         if [ "$platform" = "macos" ]; then
             load_macos_developer_id_env
         fi
-        run_release_prechecks
+        run_release_prechecks "$platform"
         ensure_required_rust_targets "$platform"
         version="$(package_version)"
         build_prod "$platform"

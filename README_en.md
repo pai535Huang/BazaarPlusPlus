@@ -8,7 +8,7 @@
 
 [![Version](https://img.shields.io/badge/version-4.2.0-6dd9a0?style=flat-square)](https://bazaarplusplus.com)
 [![License](https://img.shields.io/badge/license-MIT-e8c87a?style=flat-square)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-c1875a?style=flat-square)](https://bazaarplusplus.com/download)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%28Proton%29-c1875a?style=flat-square)](https://bazaarplusplus.com/download)
 [![BepInEx](https://img.shields.io/badge/BepInEx-5.x-8a6d3b?style=flat-square)](https://github.com/BepInEx/BepInEx)
 [![.NET](https://img.shields.io/badge/.NET-Standard%202.1-512bd4?style=flat-square)](https://learn.microsoft.com/dotnet/standard/net-standard)
 [![Tauri](https://img.shields.io/badge/Tauri-2.x-24c8d8?style=flat-square)](https://tauri.app)
@@ -26,7 +26,7 @@ Most players should install from [bazaarplusplus.com/download](https://bazaarplu
 
 ## Quick Start
 
-1. Open [bazaarplusplus.com/download](https://bazaarplusplus.com/download?lang=en) and choose the Windows `.exe` or macOS `.dmg`.
+1. Open [bazaarplusplus.com/download](https://bazaarplusplus.com/download?lang=en) and choose the installer for your system.
 2. Close the game before running the installer. For updates, uninstall the old build before installing the new one.
 3. Launch *The Bazaar* once after installation so BazaarPlusPlus can finish setup.
 4. On the main menu, confirm that the **Card Collection** button appears and the footer version text includes `BPP version`.
@@ -48,7 +48,8 @@ Feature guides, hotkeys, and installation details live at [bazaarplusplus.com/tu
 
 ### Desktop Installer
 
-- **Cross-platform install**: Windows and macOS, with automatic Steam game-directory detection.
+- **Cross-platform install**: Windows, macOS, and Linux Steam Proton environments, with automatic Steam game-directory detection.
+- **Linux Proton support**: On Linux, installs the Windows Doorstop/BepInEx payload for Proton and writes the `WINEDLLOVERRIDES="winhttp=n,b" %command%` launch option automatically.
 - **Repair / uninstall / reset local data**: Recover from broken installs, replay-data issues, or local-state corruption.
 - **Run history management**: View, locate, and clean up locally saved run records and replay videos.
 - **Stream Mode**: Start a localhost browser-source service for OBS and similar tools.
@@ -83,6 +84,7 @@ Feature guides, hotkeys, and installation details live at [bazaarplusplus.com/tu
 - **Mod**: .NET SDK 8+ and a local Steam install of *The Bazaar* so game assemblies can be resolved.
 - **Installer**: Node.js 20+, the Rust toolchain, and the system dependencies listed in the [Tauri prerequisites](https://tauri.app/start/prerequisites/).
 - **Windows**: PowerShell 7.6.0 or newer for the build scripts and development flow.
+- **Linux**: The Steam Linux client and a Proton install of *The Bazaar* are needed for local testing. Production packaging creates a `.deb` and requires the usual Tauri Linux packaging dependencies. If `zip` is unavailable, the build script falls back to `7z` when creating the Linux payload resource archive.
 
 ### Build the Mod
 
@@ -114,10 +116,12 @@ npm run check
 npm run test
 npm run format
 
-./build.sh --prod  # production package for the host platform
+./build.sh --prod  # production package for the host platform; creates a .deb on Linux
 ```
 
-Release signing, notarization, and R2 upload flows depend on local environment variables and `signing-secrets/`, which are intentionally not committed. A full release build also requires a local game install, signing material, and the platform dependencies — the public source tree alone is not enough.
+Before packaging, the script syncs versions, runs prebuild checks, and validates the BepInEx payload needed for the current host platform. Linux builds do not commit a pregenerated zip; `./build.sh --prod` creates `BepInExSource/linux/BepInEx.zip` from `src-tauri/resources/SourceForBuild/windows` for Proton, then asks Tauri to bundle only the `.deb`.
+
+Release signing, notarization, and R2 upload flows depend on local environment variables and `signing-secrets/`, which are intentionally not committed. Local Linux `.deb` builds do not require the updater signing key. A full release build also requires a local game install, signing material, and the platform dependencies — the public source tree alone is not enough.
 
 ## Derivative Work Notice
 

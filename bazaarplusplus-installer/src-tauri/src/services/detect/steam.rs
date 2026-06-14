@@ -84,6 +84,26 @@ fn candidate_steam_paths() -> Vec<PathBuf> {
         }
     }
 
+    #[cfg(target_os = "linux")]
+    {
+        use std::collections::HashSet;
+
+        let mut seen = HashSet::new();
+        let linux_candidates = [
+            dirs::home_dir().map(|home| home.join(".local/share/Steam")),
+            dirs::home_dir().map(|home| home.join(".steam/steam")),
+            dirs::home_dir()
+                .map(|home| home.join(".var/app/com.valvesoftware.Steam/.local/share/Steam")),
+        ];
+
+        for candidate in linux_candidates.into_iter().flatten() {
+            let canonical = candidate.canonicalize().unwrap_or(candidate);
+            if canonical.exists() && seen.insert(canonical.clone()) {
+                candidates.push(canonical);
+            }
+        }
+    }
+
     #[cfg(target_os = "windows")]
     {
         use std::collections::HashSet;
@@ -162,7 +182,7 @@ fn get_game_path_from_single_steam_root(steam_path: &Path) -> Option<PathBuf> {
     }
 
     let candidate = steam_path.join("steamapps/common/The Bazaar");
-    if candidate.exists() {
+    if crate::services::detect::is_valid_game_path(&candidate) {
         crate::services::debug_log!(
             "[detect::steam] hit from default steam library root={} game_path={}",
             steam_path.display(),
@@ -407,6 +427,7 @@ mod tests {
 
         std::fs::create_dir_all(&steamapps_dir).unwrap();
         std::fs::create_dir_all(&game_dir).unwrap();
+        create_valid_game_marker(&game_dir);
 
         let library_root_string = library_root.to_string_lossy().replace('\\', "\\\\");
         let vdf = format!(
@@ -428,9 +449,21 @@ mod tests {
 
         std::fs::create_dir_all(primary_root.join("steamapps")).unwrap();
         std::fs::create_dir_all(&game_dir).unwrap();
+        create_valid_game_marker(&game_dir);
 
         let path = get_game_path_from_steam_roots(vec![primary_root, secondary_root]);
 
         assert_eq!(path, Some(game_dir));
+    }
+
+    fn create_valid_game_marker(game_dir: &Path) {
+        #[cfg(target_os = "macos")]
+        std::fs::create_dir_all(game_dir.join("TheBazaar.app")).unwrap();
+
+        #[cfg(any(target_os = "windows", target_os = "linux"))]
+        std::fs::write(game_dir.join("TheBazaar.exe"), b"exe").unwrap();
+
+        #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+        std::fs::write(game_dir.join("TheBazaar"), b"exe").unwrap();
     }
 }

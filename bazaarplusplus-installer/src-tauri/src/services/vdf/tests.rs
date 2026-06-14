@@ -239,3 +239,12 @@ fn test_launch_options_args_is_empty_on_windows() {
     let args = launch_options_args(Path::new("C:\\Games\\The Bazaar"));
     assert!(args.is_empty());
 }
+
+#[cfg(target_os = "linux")]
+#[test]
+fn test_launch_options_args_uses_winhttp_override_on_linux() {
+    let args = launch_options_args(Path::new(
+        "/home/me/.local/share/Steam/steamapps/common/The Bazaar",
+    ));
+    assert_eq!(args, r#"WINEDLLOVERRIDES="winhttp=n,b" %command%"#);
+}

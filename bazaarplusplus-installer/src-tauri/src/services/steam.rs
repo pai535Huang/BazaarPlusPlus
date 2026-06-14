@@ -1,6 +1,4 @@
-use crate::services::debug_log;
 use std::path::Path;
-use std::process::Command;
 use std::time::Duration;
 
 #[cfg(target_os = "windows")]
@@ -69,7 +67,7 @@ where
 
 #[cfg(target_os = "macos")]
 fn is_steam_running() -> Result<bool, String> {
-    let output = Command::new("pgrep")
+    let output = std::process::Command::new("pgrep")
         .args(["-alf", "Steam"])
         .output()
         .map_err(|err| format!("Failed to inspect Steam process state: {err}"))?;
@@ -84,7 +82,7 @@ fn is_steam_running() -> Result<bool, String> {
 
 #[cfg(target_os = "macos")]
 fn request_steam_quit() -> Result<(), String> {
-    let output = Command::new("osascript")
+    let output = std::process::Command::new("osascript")
         .args(["-e", "tell application \"Steam\" to quit"])
         .output()
         .map_err(|err| format!("Failed to ask Steam to quit: {err}"))?;
@@ -103,7 +101,7 @@ fn request_steam_quit() -> Result<(), String> {
 
 #[cfg(target_os = "windows")]
 fn request_steam_quit() -> Result<(), String> {
-    let output = Command::new("taskkill")
+    let output = std::process::Command::new("taskkill")
         .args(["/IM", STEAM_PROCESS_NAME, "/T"])
         .output()
         .map_err(|err| format!("Failed to ask Steam to quit: {err}"))?;
@@ -138,7 +136,7 @@ pub fn prepare_steam_for_launch_option_update(
     skip_shutdown: bool,
 ) -> Result<(), String> {
     if !supports_launch_option_updates(steam_path) {
-        debug_log!(
+        crate::services::debug_log!(
             "Skipping Steam shutdown because Steam userdata was not found at {}.",
             steam_path.display()
         );
@@ -146,14 +144,14 @@ pub fn prepare_steam_for_launch_option_update(
     }
 
     if skip_shutdown {
-        debug_log!("Allowing Steam to keep running during launch option update.");
+        crate::services::debug_log!("Allowing Steam to keep running during launch option update.");
         return Ok(());
     }
 
     let stopped = close_steam_internal()?;
 
     if stopped {
-        debug_log!("Steam was running and has been closed.");
+        crate::services::debug_log!("Steam was running and has been closed.");
     }
 
     Ok(())
