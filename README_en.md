@@ -4,7 +4,7 @@
 
 **Born of Passion** · A BepInEx mod and desktop installer for [*The Bazaar*](https://www.playthebazaar.com)
 
-[中文](README.md) · [Website](https://bazaarplusplus.com) · [Download](https://bazaarplusplus.com/download?lang=en) · [Tutorial](https://bazaarplusplus.com/tutorial?lang=en) · [Release Notes](https://github.com/cauyxy/BazaarPlusPlus/releases) · [Ko-fi](https://ko-fi.com/cauyxy)
+[中文](README.md) · [Website](https://bazaarplusplus.com)
 
 [![Version](https://img.shields.io/badge/version-4.2.0-6dd9a0?style=flat-square)](https://bazaarplusplus.com)
 [![License](https://img.shields.io/badge/license-MIT-e8c87a?style=flat-square)](LICENSE)
@@ -20,11 +20,13 @@
 
 BazaarPlusPlus is an open-source project for *The Bazaar*. The in-game BepInEx mod adds a card collection browser, run history, combat replays, tooltip previews, anonymous mode, Chinese terminology, and related quality-of-life features. The companion desktop installer handles download, install, repair, auto-update, and the stream overlay.
 
-Most players should install from [bazaarplusplus.com/download](https://bazaarplusplus.com/download?lang=en); this repository is for developers who want to inspect the implementation, contribute changes, or build locally.
+This project is a fork of [BazaarPlusPlus](https://github.com/cauyxy/BazaarPlusPlus); it primarily adds Linux Steam client compatibility and source-build workflows.
 
-> The bulk of the codebase is led by [Codex](https://openai.com/codex), with [Claude Code](https://claude.com/product/claude-code) contributing in collaboration.
+> The bulk of the codebase is led by [Codex](https://openai.com/codex), with collaboration from [Claude Code](https://claude.com/product/claude-code).
 
 ## Quick Start
+
+### Windows / macOS
 
 1. Open [bazaarplusplus.com/download](https://bazaarplusplus.com/download?lang=en) and choose the installer for your system.
 2. Close the game before running the installer. For updates, uninstall the old build before installing the new one.
@@ -32,6 +34,10 @@ Most players should install from [bazaarplusplus.com/download](https://bazaarplu
 4. On the main menu, confirm that the **Card Collection** button appears and the footer version text includes `BPP version`.
 
 Feature guides, hotkeys, and installation details live at [bazaarplusplus.com/tutorial](https://bazaarplusplus.com/tutorial?lang=en).
+
+### Linux (Debian/Ubuntu)
+
+Build the `.deb` package from source and install it manually.
 
 ## Feature Overview
 
@@ -131,17 +137,12 @@ If you plan to build on top of this project or release derivative mods, make sur
 
 ## Acknowledgements
 
+- **Original Project**: [BazaarPlusPlus](https://github.com/cauyxy/BazaarPlusPlus)
 - **Inspiration**: [BazaarHelper](https://github.com/Duangi/BazaarHelper), [BazaarPlannerMod](https://github.com/oceanseth/BazaarPlannerMod)
 - **Data reference**: [bazaardb.gg](https://bazaardb.gg)
 - **Runtime dependencies**: [BepInEx](https://github.com/BepInEx/BepInEx), [Harmony](https://github.com/pardeike/Harmony), [Tauri](https://tauri.app), [React](https://react.dev), [Vite](https://vite.dev), [Tailwind CSS](https://tailwindcss.com), [FFmpeg](https://ffmpeg.org)
 - **Font**: [LXGW WenKai](https://github.com/lxgw/LxgwWenKai) (SIL Open Font License 1.1)
 - **Co-creators**: [Codex](https://openai.com/codex), [Claude Code](https://claude.com/product/claude-code)
-
-## Supporters
-
-Thanks to everyone who supports BazaarPlusPlus. The full supporter list lives at [bazaarplusplus.com/support](https://bazaarplusplus.com/support?lang=en).
-
-If you would like to support continued maintenance, head to [Ko-fi](https://ko-fi.com/cauyxy) or check the in-app sponsor options.
 
 ## License
 
