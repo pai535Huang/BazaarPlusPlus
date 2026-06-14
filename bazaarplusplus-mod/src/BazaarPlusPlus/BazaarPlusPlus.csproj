@@ -49,6 +49,7 @@
   <PropertyGroup>
     <ProjectRoot>$(MSBuildThisFileDirectory)</ProjectRoot>
     <BPPInstallerSourcePath>$(ProjectRoot)/../../../bazaarplusplus-installer/src-tauri/resources</BPPInstallerSourcePath>
+    <ManagedPathUnix>$(ManagedPath.Replace('\\', '/'))</ManagedPathUnix>
     <HostArchitecture>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant())</HostArchitecture>
     <MacSqliteRuntimeRid>osx-arm64</MacSqliteRuntimeRid>
     <WindowsSqliteRuntimeRid>win-x64</WindowsSqliteRuntimeRid>
@@ -65,6 +66,12 @@
       Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))"
       >$(WindowsFfmpegZip)</HostFfmpegZip>
     <HostFfmpegZip Condition="'$(HostFfmpegZip)' == ''">$(MacFfmpegZip)</HostFfmpegZip>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(ManagedPath)' != '' and Exists('$(ManagedPathUnix)/Assembly-CSharp.dll')">
+    <ManagedPathForReferences>$(ManagedPathUnix)</ManagedPathForReferences>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(ManagedPathForReferences)' == ''">
+    <ManagedPathForReferences>$(ManagedPath)</ManagedPathForReferences>
   </PropertyGroup>
   <!-- Package references -->
   <ItemGroup>
@@ -95,52 +102,52 @@
   <!-- Game assembly references -->
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
-      <HintPath>$(ManagedPath)\Assembly-CSharp.dll</HintPath>
+      <HintPath>$(ManagedPathForReferences)/Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="BazaarBattleService">
-      <HintPath>$(ManagedPath)\BazaarBattleService.dll</HintPath>
+      <HintPath>$(ManagedPathForReferences)/BazaarBattleService.dll</HintPath>
     </Reference>
     <Reference Include="BazaarGameClient">
-      <HintPath>$(ManagedPath)\BazaarGameClient.dll</HintPath>
+      <HintPath>$(ManagedPathForReferences)/BazaarGameClient.dll</HintPath>
     </Reference>
     <Reference Include="BazaarGameShared">
-      <HintPath>$(ManagedPath)\BazaarGameShared.dll</HintPath>
+      <HintPath>$(ManagedPathForReferences)/BazaarGameShared.dll</HintPath>
     </Reference>
     <Reference Include="TheBazaarRuntime">
-      <HintPath>$(ManagedPath)\TheBazaarRuntime.dll</HintPath>
+      <HintPath>$(ManagedPathForReferences)/TheBazaarRuntime.dll</HintPath>
     </Reference>
     <Reference Include="Addressables">
-      <HintPath>$(ManagedPath)\Unity.Addressables.dll</HintPath>
+      <HintPath>$(ManagedPathForReferences)/Unity.Addressables.dll</HintPath>
     </Reference>
     <Reference Include="ResourceManager">
-      <HintPath>$(ManagedPath)\Unity.ResourceManager.dll</HintPath>
+      <HintPath>$(ManagedPathForReferences)/Unity.ResourceManager.dll</HintPath>
     </Reference>
     <Reference Include="Unity.InputSystem">
-      <HintPath>$(ManagedPath)\Unity.InputSystem.dll</HintPath>
+      <HintPath>$(ManagedPathForReferences)/Unity.InputSystem.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UI">
-      <HintPath>$(ManagedPath)\UnityEngine.UI.dll</HintPath>
+      <HintPath>$(ManagedPathForReferences)/UnityEngine.UI.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.ImageConversionModule">
-      <HintPath>$(ManagedPath)\UnityEngine.ImageConversionModule.dll</HintPath>
+      <HintPath>$(ManagedPathForReferences)/UnityEngine.ImageConversionModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UIElementsModule">
-      <HintPath>$(ManagedPath)\UnityEngine.UIElementsModule.dll</HintPath>
+      <HintPath>$(ManagedPathForReferences)/UnityEngine.UIElementsModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.TextCoreTextEngineModule">
-      <HintPath>$(ManagedPath)\UnityEngine.TextCoreTextEngineModule.dll</HintPath>
+      <HintPath>$(ManagedPathForReferences)/UnityEngine.TextCoreTextEngineModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.TextCoreFontEngineModule">
-      <HintPath>$(ManagedPath)\UnityEngine.TextCoreFontEngineModule.dll</HintPath>
+      <HintPath>$(ManagedPathForReferences)/UnityEngine.TextCoreFontEngineModule.dll</HintPath>
     </Reference>
     <Reference Include="Unity.TextMeshPro">
-      <HintPath>$(ManagedPath)\Unity.TextMeshPro.dll</HintPath>
+      <HintPath>$(ManagedPathForReferences)/Unity.TextMeshPro.dll</HintPath>
     </Reference>
     <Reference Include="MessagePack">
-      <HintPath>$(ManagedPath)\MessagePack.dll</HintPath>
+      <HintPath>$(ManagedPathForReferences)/MessagePack.dll</HintPath>
     </Reference>
     <Reference Include="FMODUnity">
-      <HintPath>$(ManagedPath)\FMODUnity.dll</HintPath>
+      <HintPath>$(ManagedPathForReferences)/FMODUnity.dll</HintPath>
     </Reference>
   </ItemGroup>
 
