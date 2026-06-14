@@ -4,7 +4,7 @@
 
 **因热爱而生** · 为 [《The Bazaar》](https://www.playthebazaar.com) 打造的 BepInEx 模组与桌面安装器
 
-[English](README_en.md) · [官网](https://bazaarplusplus.com) · [下载](https://bazaarplusplus.com/download) · [使用教程](https://bazaarplusplus.com/tutorial) · [Release Notes](https://github.com/cauyxy/BazaarPlusPlus/releases) · [Ko-fi](https://ko-fi.com/cauyxy)
+[English](README_en.md) · [官网](https://bazaarplusplus.com)
 
 [![Version](https://img.shields.io/badge/version-4.2.0-6dd9a0?style=flat-square)](https://bazaarplusplus.com)
 [![License](https://img.shields.io/badge/license-MIT-e8c87a?style=flat-square)](LICENSE)
@@ -20,11 +20,13 @@
 
 BazaarPlusPlus 是一个面向《The Bazaar》的开源项目：游戏内由 BepInEx 模组提供卡牌图鉴、对局历史、战斗回放、Tooltip 预览、匿名模式、中文术语等功能；桌面安装器负责下载、安装、修复、自动更新和直播叠层。
 
-普通玩家建议直接使用 [下载页](https://bazaarplusplus.com/download) 的安装器；本仓库面向想了解实现、提交改动或自行构建的开发者。
+本项目是 [BazaarPlusPlus](https://github.com/cauyxy/BazaarPlusPlus) 的分支；主要增加了对 Linux Steam 客户端的兼容性和从源码构建的流程。
 
 > 项目代码主要由 [Codex](https://openai.com/codex) 主导，并由 [Claude Code](https://claude.com/product/claude-code) 协作完成。
 
 ## 快速开始
+
+### Windows / macOS
 
 1. 打开 [bazaarplusplus.com/download](https://bazaarplusplus.com/download)，选择对应系统的安装器。
 2. 关闭游戏后运行安装器；更新时建议先卸载旧版本，再安装新版本。
@@ -32,6 +34,10 @@ BazaarPlusPlus 是一个面向《The Bazaar》的开源项目：游戏内由 Bep
 4. 在主菜单确认「卡牌图鉴」按钮出现，且底部版本信息显示 `BPP version` 字样。
 
 详细教程、快捷键和功能说明见 [bazaarplusplus.com/tutorial](https://bazaarplusplus.com/tutorial)。
+
+### Linux (Debian/Ubuntu)
+
+自行从源代码构建 deb 包并进行安装。
 
 ## 功能概览
 
@@ -131,17 +137,12 @@ npm run format
 
 ## 致谢
 
+- **原项目**：[BazaarPlusPlus](https://github.com/cauyxy/BazaarPlusPlus)
 - **灵感来源**：[BazaarHelper](https://github.com/Duangi/BazaarHelper)、[BazaarPlannerMod](https://github.com/oceanseth/BazaarPlannerMod)
 - **数据来源**：[bazaardb.gg](https://bazaardb.gg)
 - **运行依赖**：[BepInEx](https://github.com/BepInEx/BepInEx)、[Harmony](https://github.com/pardeike/Harmony)、[Tauri](https://tauri.app)、[React](https://react.dev)、[Vite](https://vite.dev)、[Tailwind CSS](https://tailwindcss.com)、[FFmpeg](https://ffmpeg.org)
 - **字体**：[LXGW WenKai](https://github.com/lxgw/LxgwWenKai)（SIL Open Font License 1.1）
 - **共创**：[Codex](https://openai.com/codex)、[Claude Code](https://claude.com/product/claude-code)
-
-## 支持者
-
-感谢所有支持 BazaarPlusPlus 的朋友。完整支持者名单见 [bazaarplusplus.com/support](https://bazaarplusplus.com/support)。
-
-如果你愿意支持项目持续维护，可以前往 [Ko-fi](https://ko-fi.com/cauyxy) 或在安装器内查看赞助方式。
 
 ## License
 
