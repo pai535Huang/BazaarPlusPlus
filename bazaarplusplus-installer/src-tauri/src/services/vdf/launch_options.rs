@@ -32,7 +32,12 @@ pub(crate) fn launch_options_args(_game_path: &Path) -> String {
     String::new()
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+#[cfg(target_os = "linux")]
+pub(crate) fn launch_options_args(_game_path: &Path) -> String {
+    r#"WINEDLLOVERRIDES="winhttp=n,b" %command%"#.to_string()
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
 pub(crate) fn launch_options_args(_game_path: &Path) -> String {
     String::new()
 }

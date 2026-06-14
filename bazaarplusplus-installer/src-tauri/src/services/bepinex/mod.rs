@@ -70,18 +70,16 @@ fn format_partial_failure(paths: &[PathBuf]) -> String {
 
 pub fn install_bepinex(
     app: tauri::AppHandle,
-    steam_path: String,
+    _steam_path: String,
     game_path: String,
 ) -> Result<(), String> {
     let game_path = Path::new(&game_path);
     let preserved_bpp_config =
         payload::preserve_file_if_exists(game_path, payload::BPP_CONFIG_RELATIVE_PATH)?;
-    #[cfg(not(target_os = "macos"))]
-    let _ = &steam_path;
     #[cfg(target_os = "macos")]
-    if !steam_path.trim().is_empty() {
+    if !_steam_path.trim().is_empty() {
         crate::services::steam::prepare_steam_for_launch_option_update(
-            Path::new(&steam_path),
+            Path::new(&_steam_path),
             true,
         )?;
     }
@@ -193,12 +191,12 @@ mod tests {
             std::fs::create_dir_all(tmp.path().join("TheBazaar.app")).unwrap();
         }
 
-        #[cfg(target_os = "windows")]
+        #[cfg(any(target_os = "windows", target_os = "linux"))]
         {
             std::fs::write(tmp.path().join("TheBazaar.exe"), b"exe").unwrap();
         }
 
-        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+        #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
         {
             std::fs::write(tmp.path().join("TheBazaar"), b"exe").unwrap();
         }

@@ -89,7 +89,7 @@ pub(crate) fn payload_root_relative_paths() -> Vec<&'static str> {
         paths.push("libdoorstop.dylib");
     }
 
-    #[cfg(target_os = "windows")]
+    #[cfg(any(target_os = "windows", target_os = "linux"))]
     {
         paths.push("doorstop_config.ini");
         paths.push("winhttp.dll");
@@ -236,7 +236,7 @@ pub(super) fn uninstall_payload(game_path: &Path) -> Result<(), String> {
         remove_path_if_exists(&game_path.join("libdoorstop.dylib"))?;
     }
 
-    #[cfg(target_os = "windows")]
+    #[cfg(any(target_os = "windows", target_os = "linux"))]
     {
         remove_path_if_exists(&game_path.join("doorstop_config.ini"))?;
         remove_path_if_exists(&game_path.join("winhttp.dll"))?;
@@ -338,7 +338,7 @@ mod tests {
             std::fs::write(tmp.path().join("libdoorstop.dylib"), b"dylib").unwrap();
         }
 
-        #[cfg(target_os = "windows")]
+        #[cfg(any(target_os = "windows", target_os = "linux"))]
         {
             std::fs::write(tmp.path().join("TheBazaar.exe"), b"exe").unwrap();
             std::fs::create_dir_all(tmp.path().join("BepInEx/plugins")).unwrap();
@@ -356,7 +356,7 @@ mod tests {
             assert!(!tmp.path().join("run_bepinex.sh").exists());
             assert!(!tmp.path().join("libdoorstop.dylib").exists());
         }
-        #[cfg(target_os = "windows")]
+        #[cfg(any(target_os = "windows", target_os = "linux"))]
         {
             assert!(!tmp.path().join("doorstop_config.ini").exists());
             assert!(!tmp.path().join("winhttp.dll").exists());
@@ -374,7 +374,7 @@ mod tests {
             std::fs::write(tmp.path().join("libdoorstop.dylib"), b"old dylib").unwrap();
         }
 
-        #[cfg(target_os = "windows")]
+        #[cfg(any(target_os = "windows", target_os = "linux"))]
         {
             std::fs::write(tmp.path().join("TheBazaar.exe"), b"exe").unwrap();
             std::fs::write(tmp.path().join("doorstop_config.ini"), b"old cfg").unwrap();
@@ -389,7 +389,7 @@ mod tests {
         std::fs::write(tmp.path().join("BepInEx/plugins/new.dll"), b"new").unwrap();
         #[cfg(target_os = "macos")]
         std::fs::write(tmp.path().join("run_bepinex.sh"), b"new script").unwrap();
-        #[cfg(target_os = "windows")]
+        #[cfg(any(target_os = "windows", target_os = "linux"))]
         std::fs::write(tmp.path().join("winhttp.dll"), b"new dll").unwrap();
 
         backup.restore(tmp.path()).unwrap();
@@ -401,7 +401,7 @@ mod tests {
             std::fs::read(tmp.path().join("run_bepinex.sh")).unwrap(),
             b"old script"
         );
-        #[cfg(target_os = "windows")]
+        #[cfg(any(target_os = "windows", target_os = "linux"))]
         assert_eq!(
             std::fs::read(tmp.path().join("winhttp.dll")).unwrap(),
             b"old dll"
@@ -421,7 +421,7 @@ mod tests {
             std::fs::write(tmp.path().join("libdoorstop.dylib"), b"dylib").unwrap();
         }
 
-        #[cfg(target_os = "windows")]
+        #[cfg(any(target_os = "windows", target_os = "linux"))]
         {
             std::fs::write(tmp.path().join("TheBazaar.exe"), b"exe").unwrap();
             std::fs::write(tmp.path().join("doorstop_config.ini"), b"cfg").unwrap();
@@ -455,7 +455,7 @@ mod tests {
             std::fs::write(tmp.path().join("libdoorstop.dylib"), b"dylib").unwrap();
         }
 
-        #[cfg(target_os = "windows")]
+        #[cfg(any(target_os = "windows", target_os = "linux"))]
         {
             std::fs::write(tmp.path().join("doorstop_config.ini"), b"cfg").unwrap();
             std::fs::write(tmp.path().join("winhttp.dll"), b"dll").unwrap();
@@ -469,7 +469,7 @@ mod tests {
             assert!(!tmp.path().join("run_bepinex.sh").exists());
             assert!(!tmp.path().join("libdoorstop.dylib").exists());
         }
-        #[cfg(target_os = "windows")]
+        #[cfg(any(target_os = "windows", target_os = "linux"))]
         {
             assert!(!tmp.path().join("doorstop_config.ini").exists());
             assert!(!tmp.path().join("winhttp.dll").exists());

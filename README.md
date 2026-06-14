@@ -8,7 +8,7 @@
 
 [![Version](https://img.shields.io/badge/version-4.2.0-6dd9a0?style=flat-square)](https://bazaarplusplus.com)
 [![License](https://img.shields.io/badge/license-MIT-e8c87a?style=flat-square)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-c1875a?style=flat-square)](https://bazaarplusplus.com/download)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%28Proton%29-c1875a?style=flat-square)](https://bazaarplusplus.com/download)
 [![BepInEx](https://img.shields.io/badge/BepInEx-5.x-8a6d3b?style=flat-square)](https://github.com/BepInEx/BepInEx)
 [![.NET](https://img.shields.io/badge/.NET-Standard%202.1-512bd4?style=flat-square)](https://learn.microsoft.com/dotnet/standard/net-standard)
 [![Tauri](https://img.shields.io/badge/Tauri-2.x-24c8d8?style=flat-square)](https://tauri.app)
@@ -26,7 +26,7 @@ BazaarPlusPlus 是一个面向《The Bazaar》的开源项目：游戏内由 Bep
 
 ## 快速开始
 
-1. 打开 [bazaarplusplus.com/download](https://bazaarplusplus.com/download)，选择 Windows `.exe` 或 macOS `.dmg`。
+1. 打开 [bazaarplusplus.com/download](https://bazaarplusplus.com/download)，选择对应系统的安装器。
 2. 关闭游戏后运行安装器；更新时建议先卸载旧版本，再安装新版本。
 3. 安装完成后启动《The Bazaar》一次，让 BazaarPlusPlus 完成初始化。
 4. 在主菜单确认「卡牌图鉴」按钮出现，且底部版本信息显示 `BPP version` 字样。
@@ -48,7 +48,8 @@ BazaarPlusPlus 是一个面向《The Bazaar》的开源项目：游戏内由 Bep
 
 ### 桌面安装器
 
-- **跨平台安装**：Windows 与 macOS，自动定位 Steam 版《The Bazaar》目录。
+- **跨平台安装**：Windows、macOS 与 Linux Steam Proton 环境，自动定位 Steam 版《The Bazaar》目录。
+- **Linux Proton 支持**：在 Linux 上使用 Windows Doorstop/BepInEx payload，并自动写入 `WINEDLLOVERRIDES="winhttp=n,b" %command%` 启动参数。
 - **修复 / 卸载 / 重置本地数据**：处理安装异常、回放数据损坏，或一键恢复到干净状态。
 - **对局历史管理**：查看、定位和清理本地保存的历史记录与回放视频。
 - **直播模式**：启动本机浏览器源服务，给 OBS 等工具显示对局信息。
@@ -83,6 +84,7 @@ BazaarPlusPlus 是一个面向《The Bazaar》的开源项目：游戏内由 Bep
 - **模组**：.NET SDK 8+，以及本机 Steam 版《The Bazaar》（用于解析游戏程序集引用）。
 - **安装器**：Node.js 20+、Rust 工具链、Tauri 系统依赖（见 [Tauri prerequisites](https://tauri.app/start/prerequisites/)）。
 - **Windows**：构建脚本与开发流程要求 PowerShell 7.6.0 或更高版本。
+- **Linux**：需要 Steam Linux 客户端与 Proton 版《The Bazaar》用于本地测试；生产打包会生成 `.deb`，并需要系统具备常规 Tauri Linux 打包依赖。若系统没有 `zip`，构建脚本会尝试使用 `7z` 生成 Linux payload 资源包。
 
 ### 构建模组
 
@@ -114,10 +116,12 @@ npm run check
 npm run test
 npm run format
 
-./build.sh --prod  # 本机平台生产打包
+./build.sh --prod  # 本机平台生产打包；Linux 上生成 .deb
 ```
 
-发布签名、公证（notarization）、R2 上传等流程依赖本地环境变量与 `signing-secrets/`，这些内容不会提交到公开仓库；在缺少本机游戏、签名凭据或平台依赖的环境中，无法完成完整的发布构建。
+生产打包前，脚本会同步版本、运行 prebuild 检查，并检查当前平台所需的 BepInEx payload。Linux 构建不会提交预生成 zip；`./build.sh --prod` 会从 `src-tauri/resources/SourceForBuild/windows` 生成 Proton 可用的 `BepInExSource/linux/BepInEx.zip`，再调用 Tauri 只打包 `.deb`。
+
+发布签名、公证（notarization）、R2 上传等流程依赖本地环境变量与 `signing-secrets/`，这些内容不会提交到公开仓库；Linux 本地 `.deb` 构建不需要 updater 签名密钥。在缺少本机游戏、签名凭据或平台依赖的环境中，无法完成完整的发布构建。
 
 ## 二次开发须知
 
