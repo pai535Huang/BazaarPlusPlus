@@ -42,6 +42,7 @@ GAME_SQLITE="$GAME_ROOT/BepInEx/plugins/libe_sqlite3.dylib"
 WINDOWS_PAYLOAD="$INSTALLER_SOURCE/SourceForBuild/windows"
 WINDOWS_FFMPEG_ZIP="$INSTALLER_SOURCE/FfmpegSource/windows/ffmpeg.zip"
 WINDOWS_FFMPEG_LICENSE="$INSTALLER_SOURCE/FfmpegSource/windows/LICENSE.txt"
+RELEASE_OUTPUT_DIR="${BPP_RELEASE_OUTPUT_PATH:-$SCRIPT_DIR/src/BazaarPlusPlus/bin/Release/netstandard2.1}"
 PROTON_STEAM_LAUNCH_OPTIONS='WINEDLLOVERRIDES="winhttp=n,b" %command%'
 TRAMPOLINE_REPAIR_SCRIPT="$SCRIPT_DIR/scripts/repair-macos-trampoline.sh"
 PUBLISHED_PROJECTS=(
@@ -207,6 +208,42 @@ print_proton_result() {
     echo "  $0 proton-log --game-dir '$game_root'"
 }
 
+has_windows_payload_plugin() {
+    [[ -f "$WINDOWS_PAYLOAD/BepInEx/plugins/BazaarPlusPlus.dll" ]]
+}
+
+has_release_overlay() {
+    [[ -f "$RELEASE_OUTPUT_DIR/BazaarPlusPlus.dll" ]] &&
+        [[ -f "$RELEASE_OUTPUT_DIR/BazaarPlusPlus.version" ]] &&
+        [[ -f "$RELEASE_OUTPUT_DIR/BazaarPlusPlus.ModApi.dll" ]] &&
+        [[ -f "$RELEASE_OUTPUT_DIR/BazaarPlusPlus.Localization.dll" ]]
+}
+
+copy_release_overlay_into_game_root() {
+    local game_root="$1"
+    local plugins_dir="$game_root/BepInEx/plugins"
+    local required=(
+        BazaarPlusPlus.dll
+        BazaarPlusPlus.version
+        BazaarPlusPlus.ModApi.dll
+        BazaarPlusPlus.Localization.dll
+    )
+    local optional=(
+        BazaarPlusPlus.Storage.dll
+    )
+    local name
+
+    mkdir -p "$plugins_dir"
+    for name in "${required[@]}"; do
+        assert_file "$RELEASE_OUTPUT_DIR/$name" "release artifact $name"
+        cp "$RELEASE_OUTPUT_DIR/$name" "$plugins_dir/$name"
+    done
+
+    for name in "${optional[@]}"; do
+        [[ -f "$RELEASE_OUTPUT_DIR/$name" ]] && cp "$RELEASE_OUTPUT_DIR/$name" "$plugins_dir/$name"
+    done
+}
+
 proton_install() {
     local explicit_game_root=""
     local skip_build=false
@@ -239,30 +276,41 @@ proton_install() {
         esac
     done
 
-    assert_command dotnet "Install .NET SDK 8 or newer."
     assert_command cp
 
     game_root="$(resolve_proton_game_root "$explicit_game_root")"
     managed="$game_root/TheBazaar_Data/Managed"
 
     if [[ "$skip_build" == false ]]; then
-        echo -e "${CYAN}== Building Release mod for Proton game assemblies ==${RESET}"
-        dotnet build "$SCRIPT_DIR/src/BazaarPlusPlus/BazaarPlusPlus.csproj" \
-            -c Release \
-            -p:ManagedPath="$managed" \
-            -p:GamePath="$game_root" \
-            -p:BuildProductionPackage=true \
-            -verbosity minimal
+        if command -v dotnet &>/dev/null; then
+            echo -e "${CYAN}== Building Release mod for Proton game assemblies ==${RESET}"
+            dotnet build "$SCRIPT_DIR/src/BazaarPlusPlus/BazaarPlusPlus.csproj" \
+                -c Release \
+                -p:ManagedPath="$managed" \
+                -p:GamePath="$game_root" \
+                -p:BuildProductionPackage=true \
+                -verbosity minimal
+        elif has_windows_payload_plugin || has_release_overlay; then
+            echo -e "${CYAN}== dotnet not found; reusing existing Release artifacts ==${RESET}"
+        else
+            echo -e "${RED}Missing command: dotnet. Install .NET SDK 8 or newer, or provide prebuilt Release artifacts.${RESET}" >&2
+            exit 1
+        fi
     fi
 
-    if [[ ! -f "$WINDOWS_PAYLOAD/BepInEx/plugins/BazaarPlusPlus.dll" ]]; then
-        echo -e "${RED}Missing built plugin: $WINDOWS_PAYLOAD/BepInEx/plugins/BazaarPlusPlus.dll${RESET}" >&2
-        echo "Run without --skip-build, or fix the build errors above." >&2
+    if ! has_windows_payload_plugin && ! has_release_overlay; then
+        echo -e "${RED}Missing built payload: neither $WINDOWS_PAYLOAD/BepInEx/plugins/BazaarPlusPlus.dll nor $RELEASE_OUTPUT_DIR/BazaarPlusPlus.dll exists.${RESET}" >&2
+        echo "Build the mod once, or place prebuilt Release artifacts under $RELEASE_OUTPUT_DIR." >&2
         exit 1
     fi
 
     echo -e "${CYAN}== Copying Windows BepInEx payload ==${RESET}"
     cp -R "$WINDOWS_PAYLOAD"/. "$game_root"/
+
+    if ! has_windows_payload_plugin; then
+        echo -e "${CYAN}== Overlaying existing Release artifacts ==${RESET}"
+        copy_release_overlay_into_game_root "$game_root"
+    fi
 
     if [[ "$skip_ffmpeg" == false && -f "$WINDOWS_FFMPEG_ZIP" ]]; then
         assert_command unzip "Install unzip, or rerun with --skip-ffmpeg."
@@ -705,6 +753,7 @@ Usage:
   $0 decompile-all-ptr
   $0 snapshot-managed
   $0 build-matrix
+  $0 install [--game-dir PATH] [--skip-build] [--skip-ffmpeg]
   $0 proton-install [--game-dir PATH] [--skip-build] [--skip-ffmpeg]
   $0 proton-log [--game-dir PATH] [--lines N]
 
@@ -712,9 +761,12 @@ Options:
   --with-bazaaragent  Build and copy the optional BazaarAgent assemblies.
   --fast              With build: skip NuGet restore (rerun without it after csproj edits or in a fresh worktree).
   -p:Name=Value       Forward an MSBuild property to publish or fetch-data.
-  --game-dir PATH     Proton game root containing TheBazaar.exe.
+  --game-dir PATH     Proton game root containing TheBazaar.exe (auto-detected on Linux when omitted).
   --skip-build        With proton-install: copy the existing Windows payload only.
   --skip-ffmpeg       With proton-install: do not install bundled Windows ffmpeg.
+
+Environment:
+  BPP_RELEASE_OUTPUT_PATH  Override the fallback Release artifact directory used when dotnet is unavailable.
 EOF
 }
 
@@ -754,6 +806,10 @@ case "${1:-}" in
         ;;
     snapshot-managed) snapshot_managed ;;
     build-matrix) build_matrix ;;
+    install)
+        shift
+        proton_install "$@"
+        ;;
     proton-install)
         shift
         proton_install "$@"

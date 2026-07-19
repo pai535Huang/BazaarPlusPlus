@@ -37,7 +37,25 @@ BazaarPlusPlus 是一个面向《The Bazaar》的开源项目：游戏内由 Bep
 
 ### Linux (Debian/Ubuntu)
 
-自行从源代码构建 deb 包并进行安装。
+如果只是想在 Proton 环境里直接安装，可以不构建 `.deb`，而是把所需文件直接复制到 Steam 游戏目录：
+
+1. 运行最短安装命令：
+   ```bash
+   cd bazaarplusplus-mod
+   ./run.sh install --skip-build
+   ```
+2. 如果自动探测 Steam 游戏目录失败，可手动指定：
+   ```bash
+   ./run.sh install --game-dir "/path/to/steamapps/common/The Bazaar" --skip-build
+   ```
+3. 在 Steam 中打开 **库** → 右键 **The Bazaar** → **属性** → **启动选项**，填入：
+   ```bash
+   WINEDLLOVERRIDES="winhttp=n,b" %command%
+   ```
+4. 启动一次游戏后，如需确认 BepInEx 是否正常加载，可执行：
+   ```bash
+   ./run.sh proton-log
+   ```
 
 ## 功能概览
 
