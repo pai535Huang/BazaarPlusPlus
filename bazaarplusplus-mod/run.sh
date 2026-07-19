@@ -6,6 +6,10 @@ GREEN='\033[0;32m'
 RED='\033[0;31m'
 RESET='\033[0m'
 
+# Some VPN/tunnel configurations advertise an unusable IPv6 route. Keep builds on
+# the working IPv4 path by default while allowing callers to opt back into IPv6.
+export DOTNET_SYSTEM_NET_DISABLEIPV6="${DOTNET_SYSTEM_NET_DISABLEIPV6:-1}"
+
 case "$(uname -s)" in
     Darwin)
         PLATFORM="macOS"
@@ -28,31 +32,56 @@ case "$(uname -s)" in
         ;;
 esac
 
-echo -e "${CYAN}== Platform: ${GREEN}${PLATFORM}${CYAN} ==${RESET}"
+echo -e "${CYAN}== Building on ${GREEN}${PLATFORM}${CYAN} ==${RESET}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INSTALLER_SQLITE="$SCRIPT_DIR/../bazaarplusplus-installer/src-tauri/resources/SourceForBuild/macos/BepInEx/plugins/libe_sqlite3.dylib"
+GAME_ROOT="${BPP_GAME_ROOT:-$GAME_ROOT}"
+MANAGED="${BPP_MANAGED_PATH:-$MANAGED}"
+INSTALLER_SOURCE="${BPP_INSTALLER_SOURCE_PATH:-$SCRIPT_DIR/../bazaarplusplus-installer/src-tauri/resources}"
 GAME_SQLITE="$GAME_ROOT/BepInEx/plugins/libe_sqlite3.dylib"
-WINDOWS_PAYLOAD="$SCRIPT_DIR/../bazaarplusplus-installer/src-tauri/resources/SourceForBuild/windows"
-WINDOWS_FFMPEG_ZIP="$SCRIPT_DIR/../bazaarplusplus-installer/src-tauri/resources/FfmpegSource/windows/ffmpeg.zip"
-WINDOWS_FFMPEG_LICENSE="$SCRIPT_DIR/../bazaarplusplus-installer/src-tauri/resources/FfmpegSource/windows/LICENSE.txt"
+WINDOWS_PAYLOAD="$INSTALLER_SOURCE/SourceForBuild/windows"
+WINDOWS_FFMPEG_ZIP="$INSTALLER_SOURCE/FfmpegSource/windows/ffmpeg.zip"
+WINDOWS_FFMPEG_LICENSE="$INSTALLER_SOURCE/FfmpegSource/windows/LICENSE.txt"
+RELEASE_OUTPUT_DIR="${BPP_RELEASE_OUTPUT_PATH:-$SCRIPT_DIR/src/BazaarPlusPlus/bin/Release/netstandard2.1}"
 PROTON_STEAM_LAUNCH_OPTIONS='WINEDLLOVERRIDES="winhttp=n,b" %command%'
+TRAMPOLINE_REPAIR_SCRIPT="$SCRIPT_DIR/scripts/repair-macos-trampoline.sh"
+PUBLISHED_PROJECTS=(
+    src/BazaarPlusPlus.Localization/BazaarPlusPlus.Localization.csproj
+    src/BazaarPlusPlus.ModApi/BazaarPlusPlus.ModApi.csproj
+    src/BazaarPlusPlus.Storage/BazaarPlusPlus.Storage.csproj
+    src/BazaarPlusPlus/BazaarPlusPlus.csproj
+    src/BazaarPlusPlus.BazaarAgent/BazaarPlusPlus.BazaarAgent.csproj
+    src/BazaarPlusPlus.BazaarAgentHost/BazaarPlusPlus.BazaarAgentHost.csproj
+)
 
 clear_macos_sqlite_quarantine() {
     [[ "$PLATFORM" == "macOS" ]] || return 0
 
+    local installer_source="${1:-$INSTALLER_SOURCE}"
     local target
-    for target in "$INSTALLER_SQLITE" "$GAME_SQLITE"; do
+    for target in "$installer_source/SourceForBuild/macos/BepInEx/plugins/libe_sqlite3.dylib" "$GAME_SQLITE"; do
         [[ -f "$target" ]] || continue
         xattr -d com.apple.quarantine "$target" 2>/dev/null || true
     done
 }
 
-require_non_linux_build_platform() {
-    if [[ "$PLATFORM" == "Linux (Proton)" ]]; then
-        echo -e "${RED}Use '$0 proton-install' for Linux/Proton testing.${RESET}" >&2
-        exit 1
+print_bazaaragent_mode() {
+    local bazaaragent="${1:-false}"
+    if [[ "$bazaaragent" == "true" ]]; then
+        echo -e "${CYAN}== BazaarAgent: ${GREEN}included${CYAN} ==${RESET}"
+    else
+        echo -e "${CYAN}== BazaarAgent: excluded ==${RESET}"
     fi
+}
+
+repair_macos_trampoline() {
+    [[ "$PLATFORM" == "macOS" ]] || return 0
+
+    local installer_source="${1:-$INSTALLER_SOURCE}"
+    local trampoline_stub="${BPP_TRAMPOLINE_STUB:-$installer_source/Trampoline/macos/bpp_launcher}"
+    BPP_GAME_ROOT="$GAME_ROOT" \
+        BPP_TRAMPOLINE_STUB="$trampoline_stub" \
+        bash "$TRAMPOLINE_REPAIR_SCRIPT"
 }
 
 assert_command() {
@@ -179,6 +208,42 @@ print_proton_result() {
     echo "  $0 proton-log --game-dir '$game_root'"
 }
 
+has_windows_payload_plugin() {
+    [[ -f "$WINDOWS_PAYLOAD/BepInEx/plugins/BazaarPlusPlus.dll" ]]
+}
+
+has_release_overlay() {
+    [[ -f "$RELEASE_OUTPUT_DIR/BazaarPlusPlus.dll" ]] &&
+        [[ -f "$RELEASE_OUTPUT_DIR/BazaarPlusPlus.version" ]] &&
+        [[ -f "$RELEASE_OUTPUT_DIR/BazaarPlusPlus.ModApi.dll" ]] &&
+        [[ -f "$RELEASE_OUTPUT_DIR/BazaarPlusPlus.Localization.dll" ]]
+}
+
+copy_release_overlay_into_game_root() {
+    local game_root="$1"
+    local plugins_dir="$game_root/BepInEx/plugins"
+    local required=(
+        BazaarPlusPlus.dll
+        BazaarPlusPlus.version
+        BazaarPlusPlus.ModApi.dll
+        BazaarPlusPlus.Localization.dll
+    )
+    local optional=(
+        BazaarPlusPlus.Storage.dll
+    )
+    local name
+
+    mkdir -p "$plugins_dir"
+    for name in "${required[@]}"; do
+        assert_file "$RELEASE_OUTPUT_DIR/$name" "release artifact $name"
+        cp "$RELEASE_OUTPUT_DIR/$name" "$plugins_dir/$name"
+    done
+
+    for name in "${optional[@]}"; do
+        [[ -f "$RELEASE_OUTPUT_DIR/$name" ]] && cp "$RELEASE_OUTPUT_DIR/$name" "$plugins_dir/$name"
+    done
+}
+
 proton_install() {
     local explicit_game_root=""
     local skip_build=false
@@ -211,29 +276,41 @@ proton_install() {
         esac
     done
 
-    assert_command dotnet "Install .NET SDK 8 or newer."
     assert_command cp
 
     game_root="$(resolve_proton_game_root "$explicit_game_root")"
     managed="$game_root/TheBazaar_Data/Managed"
 
     if [[ "$skip_build" == false ]]; then
-        echo -e "${CYAN}== Building Release mod for Proton game assemblies ==${RESET}"
-        dotnet build "$SCRIPT_DIR/src/BazaarPlusPlus/BazaarPlusPlus.csproj" \
-            -c Release \
-            -p:ManagedPath="$managed" \
-            -p:GamePath="$game_root" \
-            -verbosity minimal
+        if command -v dotnet &>/dev/null; then
+            echo -e "${CYAN}== Building Release mod for Proton game assemblies ==${RESET}"
+            dotnet build "$SCRIPT_DIR/src/BazaarPlusPlus/BazaarPlusPlus.csproj" \
+                -c Release \
+                -p:ManagedPath="$managed" \
+                -p:GamePath="$game_root" \
+                -p:BuildProductionPackage=true \
+                -verbosity minimal
+        elif has_windows_payload_plugin || has_release_overlay; then
+            echo -e "${CYAN}== dotnet not found; reusing existing Release artifacts ==${RESET}"
+        else
+            echo -e "${RED}Missing command: dotnet. Install .NET SDK 8 or newer, or provide prebuilt Release artifacts.${RESET}" >&2
+            exit 1
+        fi
     fi
 
-    if [[ ! -f "$WINDOWS_PAYLOAD/BepInEx/plugins/BazaarPlusPlus.dll" ]]; then
-        echo -e "${RED}Missing built plugin: $WINDOWS_PAYLOAD/BepInEx/plugins/BazaarPlusPlus.dll${RESET}" >&2
-        echo "Run without --skip-build, or fix the build errors above." >&2
+    if ! has_windows_payload_plugin && ! has_release_overlay; then
+        echo -e "${RED}Missing built payload: neither $WINDOWS_PAYLOAD/BepInEx/plugins/BazaarPlusPlus.dll nor $RELEASE_OUTPUT_DIR/BazaarPlusPlus.dll exists.${RESET}" >&2
+        echo "Build the mod once, or place prebuilt Release artifacts under $RELEASE_OUTPUT_DIR." >&2
         exit 1
     fi
 
     echo -e "${CYAN}== Copying Windows BepInEx payload ==${RESET}"
     cp -R "$WINDOWS_PAYLOAD"/. "$game_root"/
+
+    if ! has_windows_payload_plugin; then
+        echo -e "${CYAN}== Overlaying existing Release artifacts ==${RESET}"
+        copy_release_overlay_into_game_root "$game_root"
+    fi
 
     if [[ "$skip_ffmpeg" == false && -f "$WINDOWS_FFMPEG_ZIP" ]]; then
         assert_command unzip "Install unzip, or rerun with --skip-ffmpeg."
@@ -293,37 +370,189 @@ proton_log() {
 }
 
 build() {
-    require_non_linux_build_platform
-    local args=(-verbosity detailed)
+    local bazaaragent="${1:-false}"
+    local fast="${2:-false}"
+    local args=()
 
-    dotnet build src/BazaarPlusPlus/BazaarPlusPlus.csproj "${args[@]}"
-}
-
-build_all() {
-    require_non_linux_build_platform
-    local prod="${1:-false}"
-    local args=(-t:BuildAll -verbosity detailed)
-
-    if [[ "$prod" == "true" ]]; then
-        args+=(-p:BuildProductionPackage=true)
+    if [[ "$fast" == "true" ]]; then
+        # Inner-loop accelerator: skips NuGet restore. Run a normal build after
+        # editing any csproj or creating a fresh worktree.
+        args+=(--no-restore)
     fi
 
-    clear_macos_sqlite_quarantine
-    dotnet build src/BazaarPlusPlus/BazaarPlusPlus.csproj "${args[@]}"
-    clear_macos_sqlite_quarantine
+    print_bazaaragent_mode "$bazaaragent"
+    repair_macos_trampoline
+    # The host is its own plugin project that references the main plugin + the pure core,
+    # so building it builds and deploys all three. A default build builds only the main
+    # plugin, whose build actively scrubs both host dlls from the plugins folder.
+    if [[ "$bazaaragent" == "true" ]]; then
+        dotnet build src/BazaarPlusPlus.BazaarAgentHost/BazaarPlusPlus.BazaarAgentHost.csproj ${args[@]+"${args[@]}"}
+    else
+        dotnet build src/BazaarPlusPlus/BazaarPlusPlus.csproj ${args[@]+"${args[@]}"}
+    fi
 }
 
-parse_build_options() {
-    if (($# > 0)); then
-        usage
+# Production publishing copies the DLL into the installer resources that ship to
+# ONLINE users, but online/PTR share one install directory — a publish run while the
+# PTR branch is installed would ship a PTR-assembly build. Pin production builds to
+# an online Managed snapshot (game-libs/online-*/Managed, newest) when one exists;
+# otherwise require the installed branch to actually be public.
+resolve_release_managed() {
+    local pinned="${BPP_RELEASE_MANAGED:-}"
+    if [[ -n "$pinned" ]]; then
+        echo "$pinned"
+        return
+    fi
+    local snaps=("$SCRIPT_DIR"/game-libs/online-*/Managed)
+    local last=""
+    local snap
+    for snap in "${snaps[@]}"; do
+        [[ -d "$snap" ]] && last="$snap"
+    done
+    echo "$last"
+}
+
+resolve_installer_source() {
+    local resolved="$INSTALLER_SOURCE"
+    local arg
+    for arg in "$@"; do
+        case "$arg" in
+            -p:BPPInstallerSourcePath=*|--property:BPPInstallerSourcePath=*)
+                resolved="${arg#*=}"
+                ;;
+        esac
+    done
+    echo "$resolved"
+}
+
+fetch_remote_data() {
+    local args=("$@")
+    dotnet msbuild src/BazaarPlusPlus/BazaarPlusPlus.csproj \
+        -t:FetchRemoteEmbeddedData \
+        ${args[@]+"${args[@]}"} \
+        -p:ForceRemoteEmbeddedDataRefresh=true
+}
+
+run_seed_gates() {
+    local args=("$@")
+    echo -e "${CYAN}== Validating ${GREEN}voice subtitle embedded seed${CYAN} ==${RESET}"
+    dotnet test tests/VoiceSubtitles.Tests/VoiceSubtitles.Tests.csproj \
+        -c Release \
+        ${args[@]+"${args[@]}"}
+    echo -e "${CYAN}== Validating ${GREEN}live build recommendation embedded seed${CYAN} ==${RESET}"
+    dotnet run --project tests/LiveBuildRecommendations.Tests/LiveBuildRecommendations.Tests.csproj \
+        -c Release \
+        ${args[@]+"${args[@]}"}
+}
+
+publish() {
+    local bazaaragent="${1:-false}"
+    shift || true
+    local passthrough_args=("$@")
+    local installer_source
+    installer_source=$(resolve_installer_source ${passthrough_args[@]+"${passthrough_args[@]}"})
+    if [[ ! -d "$installer_source" ]]; then
+        echo -e "${RED}Installer resources not found at '$installer_source'.${RESET}" >&2
+        echo -e "${RED}Pass -p:BPPInstallerSourcePath=/absolute/path/to/resources.${RESET}" >&2
         exit 1
     fi
 
-    build
+    local common_args=(
+        ${passthrough_args[@]+"${passthrough_args[@]}"}
+        "-p:BPPInstallerSourcePath=$installer_source"
+    )
+
+    local release_managed=""
+    release_managed=$(resolve_release_managed)
+    if [[ -n "$release_managed" ]]; then
+        echo -e "${CYAN}== Release pinned to ${GREEN}${release_managed}${CYAN} ==${RESET}"
+        common_args+=("-p:ManagedPath=$release_managed")
+    else
+        require_steam_branch public
+    fi
+
+    print_bazaaragent_mode "$bazaaragent"
+    clear_macos_sqlite_quarantine "$installer_source"
+    repair_macos_trampoline "$installer_source"
+
+    fetch_remote_data "${common_args[@]}"
+    run_seed_gates "${common_args[@]}" -p:RemoteEmbeddedDataPrepared=true
+
+    local build_args=(
+        -t:BuildAll
+        "${common_args[@]}"
+        -p:BuildProductionPackage=true
+        -p:RemoteEmbeddedDataPrepared=true
+    )
+    if [[ "$bazaaragent" == "true" ]]; then
+        dotnet build src/BazaarPlusPlus.BazaarAgentHost/BazaarPlusPlus.BazaarAgentHost.csproj "${build_args[@]}"
+    else
+        dotnet build src/BazaarPlusPlus/BazaarPlusPlus.csproj "${build_args[@]}"
+    fi
+    clear_macos_sqlite_quarantine "$installer_source"
+}
+
+parse_build_options() {
+    local bazaaragent=false
+    local fast=false
+
+    while (($# > 0)); do
+        case "$1" in
+            --with-bazaaragent) bazaaragent=true ;;
+            --fast) fast=true ;;
+            *)
+                usage
+                exit 1
+                ;;
+        esac
+        shift
+    done
+
+    build "$bazaaragent" "$fast"
+}
+
+parse_publish_options() {
+    local bazaaragent=false
+    local msbuild_args=()
+
+    while (($# > 0)); do
+        case "$1" in
+            --with-bazaaragent) bazaaragent=true ;;
+            -p:*|--property:*) msbuild_args+=("$1") ;;
+            *)
+                usage
+                exit 1
+                ;;
+        esac
+        shift
+    done
+
+    publish "$bazaaragent" ${msbuild_args[@]+"${msbuild_args[@]}"}
+}
+
+parse_fetch_data_options() {
+    local msbuild_args=()
+
+    while (($# > 0)); do
+        case "$1" in
+            -p:*|--property:*) msbuild_args+=("$1") ;;
+            *)
+                usage
+                exit 1
+                ;;
+        esac
+        shift
+    done
+
+    fetch_remote_data ${msbuild_args[@]+"${msbuild_args[@]}"}
 }
 
 test_all() {
-    require_non_linux_build_platform
+    [[ "$PLATFORM" == "Linux (Proton)" ]] && {
+        echo -e "${RED}Use '$0 proton-install' for Linux/Proton validation.${RESET}" >&2
+        exit 1
+    }
+
     clear_macos_sqlite_quarantine
 
     local project
@@ -350,8 +579,34 @@ test_all() {
     fi
 }
 
+restore_locks() {
+    local project
+    for project in "${PUBLISHED_PROJECTS[@]}"; do
+        echo -e "${CYAN}== Refreshing NuGet lock for ${GREEN}${project}${CYAN} ==${RESET}"
+        dotnet restore "$project" --force-evaluate
+    done
+}
+
+restore_locked() {
+    local project
+    for project in "${PUBLISHED_PROJECTS[@]}"; do
+        echo -e "${CYAN}== Validating NuGet lock for ${GREEN}${project}${CYAN} ==${RESET}"
+        dotnet restore "$project" --locked-mode
+    done
+}
+
+restore_dotnet_tools() {
+    dotnet tool restore
+}
+
 format() {
-    csharpier format .
+    restore_dotnet_tools
+    dotnet csharpier format .
+}
+
+format_check() {
+    restore_dotnet_tools
+    dotnet csharpier check .
 }
 
 check_ilspy() {
@@ -361,11 +616,60 @@ check_ilspy() {
     fi
 }
 
+# Steam beta branches ("public_test_realm" = PTR) replace the single install
+# in place, so the Managed dir silently changes identity on branch switch.
+# Guard so PTR bits never overwrite ./decompiled (online reference) and vice versa.
+# The appmanifest is located by walking up from MANAGED — the directory the DLLs
+# are actually read from — so an overridden BPP_MANAGED_PATH is guarded too.
+locate_appmanifest() {
+    local dir="$MANAGED"
+    local _i
+    for _i in 1 2 3 4 5 6 7 8 9 10; do
+        dir="$(dirname "$dir")"
+        if [[ -f "$dir/appmanifest_1617400.acf" ]]; then
+            echo "$dir/appmanifest_1617400.acf"
+            return
+        fi
+        [[ "$dir" == "/" || "$dir" == "." ]] && break
+    done
+}
+
+installed_steam_branch() {
+    local acf
+    acf=$(locate_appmanifest)
+    [[ -n "$acf" ]] || { echo "unknown"; return; }
+    local key
+    key=$(awk '/"MountedConfig"/,/^\t\}/' "$acf" | awk -F '"' '/"BetaKey"/ {print $4}')
+    echo "${key:-public}"
+}
+
+require_steam_branch() {
+    local expected="$1"
+    [[ "${BPP_SKIP_BRANCH_CHECK:-}" == "1" ]] && return 0
+    local branch
+    branch=$(installed_steam_branch)
+    if [[ "$branch" == "unknown" ]]; then
+        echo -e "${RED}Could not find appmanifest_1617400.acf above the Managed path to verify the Steam branch.${RESET}" >&2
+        echo -e "${RED}Decompiling a bare copied Managed dir? Set BPP_SKIP_BRANCH_CHECK=1 to override.${RESET}" >&2
+        exit 1
+    fi
+    if [[ "$branch" != "$expected" ]]; then
+        echo -e "${RED}Installed Steam branch is '$branch', expected '$expected'.${RESET}" >&2
+        echo -e "${RED}Switch The Bazaar's beta branch in Steam first, or set BPP_SKIP_BRANCH_CHECK=1 to override.${RESET}" >&2
+        exit 1
+    fi
+}
+
 decompile() {
-    require_non_linux_build_platform
+    [[ "$PLATFORM" == "Linux (Proton)" ]] && {
+        echo -e "${RED}Decompile commands require a native macOS or Windows install.${RESET}" >&2
+        exit 1
+    }
+
     check_ilspy
     local dll="${2:-Assembly-CSharp}"
-    local out="./decompiled/$dll"
+    local out_root="${BPP_DECOMPILE_OUT:-./decompiled}"
+    local out="$out_root/$dll"
     echo "Decompiling $dll to $out..."
     DOTNET_ROLL_FORWARD=Major ilspycmd -p -o "$out" "$MANAGED/$dll.dll"
     echo "Done: $out"
@@ -377,50 +681,135 @@ decompile_all() {
     done
 }
 
+# Archive the currently installed Managed dir keyed by branch + buildid. Because the
+# two branches overwrite each other in place, this is the only way to keep both
+# assembly sets available (Release pinning + build-matrix consume these snapshots).
+snapshot_managed() {
+    local acf branch buildid channel dest
+    acf=$(locate_appmanifest)
+    if [[ -z "$acf" ]]; then
+        echo -e "${RED}Could not find appmanifest_1617400.acf above the Managed path.${RESET}" >&2
+        exit 1
+    fi
+    branch=$(installed_steam_branch)
+    channel="online"
+    [[ "$branch" == "public_test_realm" ]] && channel="ptr"
+    if [[ "$branch" != "public" && "$branch" != "public_test_realm" ]]; then
+        echo -e "${RED}Installed branch '$branch' is neither public nor public_test_realm; refusing to snapshot.${RESET}" >&2
+        exit 1
+    fi
+    buildid=$(awk -F '"' '/"buildid"/ {print $4; exit}' "$acf")
+    dest="$SCRIPT_DIR/game-libs/$channel-$buildid/Managed"
+    if [[ -d "$dest" ]]; then
+        echo "Snapshot already exists: $dest"
+        return
+    fi
+    mkdir -p "$dest"
+    cp -R "$MANAGED/." "$dest/"
+    echo -e "${GREEN}Archived $channel (buildid $buildid) Managed -> $dest${RESET}"
+}
+
+# Compile the single source tree against every archived Managed snapshot. Uses the
+# CompatCheck configuration so neither the Debug plugins-copy nor the Release
+# installer-copy post-build steps fire.
+build_matrix() {
+    local snaps=("$SCRIPT_DIR"/game-libs/*/Managed)
+    local found=0 failed=()
+    local snap
+    for snap in "${snaps[@]}"; do
+        [[ -d "$snap" ]] || continue
+        found=1
+        echo -e "${CYAN}== Matrix build against ${GREEN}${snap}${CYAN} ==${RESET}"
+        if ! dotnet build src/BazaarPlusPlus/BazaarPlusPlus.csproj -c CompatCheck -p:ManagedPath="$snap"; then
+            failed+=("$snap")
+        fi
+    done
+    if ((found == 0)); then
+        echo -e "${RED}No snapshots under game-libs/. Run './run.sh snapshot-managed' on each branch first.${RESET}" >&2
+        exit 1
+    fi
+    if ((${#failed[@]} > 0)); then
+        echo -e "${RED}Matrix build failed against:${RESET}" >&2
+        printf '  %s\n' "${failed[@]}" >&2
+        exit 1
+    fi
+    echo -e "${GREEN}Matrix build passed for all snapshots.${RESET}"
+}
+
 usage() {
     cat <<EOF
 Usage:
-  $0 build
-  $0 all [--prod]
+  $0 build [--with-bazaaragent] [--fast]
+  $0 publish [--with-bazaaragent] [-p:Name=Value ...]
+  $0 fetch-data [-p:Name=Value ...]
+  $0 restore-locks
+  $0 restore-locked
   $0 test
   $0 format
+  $0 format-check
   $0 decompile [DllName]
   $0 decompile-all
+  $0 decompile-ptr [DllName]
+  $0 decompile-all-ptr
+  $0 snapshot-managed
+  $0 build-matrix
+  $0 install [--game-dir PATH] [--skip-build] [--skip-ffmpeg]
   $0 proton-install [--game-dir PATH] [--skip-build] [--skip-ffmpeg]
   $0 proton-log [--game-dir PATH] [--lines N]
 
 Options:
-  --prod              With all: also build the production installer package.
-  --game-dir PATH     Proton game root containing TheBazaar.exe.
+  --with-bazaaragent  Build and copy the optional BazaarAgent assemblies.
+  --fast              With build: skip NuGet restore (rerun without it after csproj edits or in a fresh worktree).
+  -p:Name=Value       Forward an MSBuild property to publish or fetch-data.
+  --game-dir PATH     Proton game root containing TheBazaar.exe (auto-detected on Linux when omitted).
   --skip-build        With proton-install: copy the existing Windows payload only.
   --skip-ffmpeg       With proton-install: do not install bundled Windows ffmpeg.
+
+Environment:
+  BPP_RELEASE_OUTPUT_PATH  Override the fallback Release artifact directory used when dotnet is unavailable.
 EOF
 }
 
 case "${1:-}" in
-    all)
+    publish)
         shift
-        prod=false
-        while (($# > 0)); do
-            case "$1" in
-                --prod) prod=true ;;
-                *)
-                    usage
-                    exit 1
-                    ;;
-            esac
-            shift
-        done
-        build_all "$prod"
+        parse_publish_options "$@"
+        ;;
+    fetch-data)
+        shift
+        parse_fetch_data_options "$@"
         ;;
     build)
         shift
         parse_build_options "$@"
         ;;
-    test)       test_all ;;
-    format)     format ;;
-    decompile)  decompile "$@" ;;
-    decompile-all) decompile_all ;;
+    restore-locks)  restore_locks ;;
+    restore-locked) restore_locked ;;
+    test)         test_all ;;
+    format)       format ;;
+    format-check) format_check ;;
+    decompile)
+        require_steam_branch public
+        decompile "$@"
+        ;;
+    decompile-all)
+        require_steam_branch public
+        decompile_all
+        ;;
+    decompile-ptr)
+        require_steam_branch public_test_realm
+        BPP_DECOMPILE_OUT=./decompiled-vptr decompile "$@"
+        ;;
+    decompile-all-ptr)
+        require_steam_branch public_test_realm
+        BPP_DECOMPILE_OUT=./decompiled-vptr decompile_all
+        ;;
+    snapshot-managed) snapshot_managed ;;
+    build-matrix) build_matrix ;;
+    install)
+        shift
+        proton_install "$@"
+        ;;
     proton-install)
         shift
         proton_install "$@"

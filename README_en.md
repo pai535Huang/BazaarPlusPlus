@@ -37,7 +37,25 @@ Feature guides, hotkeys, and installation details live at [bazaarplusplus.com/tu
 
 ### Linux (Debian/Ubuntu)
 
-Build the `.deb` package from source and install it manually.
+For a direct Proton install, you can copy the required files straight into the Steam game directory without building a `.deb` package:
+
+1. Run the shortcut installer command:
+   ```bash
+   cd bazaarplusplus-mod
+   ./run.sh install --skip-build
+   ```
+2. If automatic Steam detection fails, point it at the game directory explicitly:
+   ```bash
+   ./run.sh install --game-dir "/path/to/steamapps/common/The Bazaar" --skip-build
+   ```
+3. In Steam, open **Library** → right-click **The Bazaar** → **Properties** → **Launch Options**, then set:
+   ```bash
+   WINEDLLOVERRIDES="winhttp=n,b" %command%
+   ```
+4. Launch the game once, then optionally verify the BepInEx log:
+   ```bash
+   ./run.sh proton-log
+   ```
 
 ## Feature Overview
 
