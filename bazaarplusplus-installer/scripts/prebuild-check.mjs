@@ -1,68 +1,54 @@
-import { execFileSync } from 'node:child_process';
-import fs from 'node:fs';
-import path from 'node:path';
-import process from 'node:process';
-import zlib from 'node:zlib';
+import { execFileSync } from "node:child_process";
+import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import process from "node:process";
+import zlib from "node:zlib";
 import {
   assertVersionsAreAligned,
-  collectVersionSnapshot
-} from './version-sync.mjs';
+  collectVersionSnapshot,
+} from "./version-sync.mjs";
 
-export const sharedBundledZipPath = 'BepInExSource/BepInEx.zip';
-
-const platformAliases = new Map([
-  ['darwin', 'macos'],
-  ['macos', 'macos'],
-  ['linux', 'linux'],
-  ['win32', 'windows'],
-  ['windows', 'windows']
-]);
+export const sharedBundledZipPath = "BepInExSource/BepInEx.zip";
 
 const managedPluginDependencies = [
-  'BepInEx/plugins/Microsoft.Data.Sqlite.dll',
-  'BepInEx/plugins/SQLitePCLRaw.batteries_v2.dll',
-  'BepInEx/plugins/SQLitePCLRaw.core.dll',
-  'BepInEx/plugins/SQLitePCLRaw.provider.e_sqlite3.dll',
-  'BepInEx/plugins/SixLabors.ImageSharp.dll',
-  'BepInEx/plugins/System.Buffers.dll',
-  'BepInEx/plugins/System.Memory.dll',
-  'BepInEx/plugins/System.Numerics.Vectors.dll',
-  'BepInEx/plugins/System.Text.Encoding.CodePages.dll'
+  "BepInEx/plugins/Microsoft.Data.Sqlite.dll",
+  "BepInEx/plugins/SQLitePCLRaw.batteries_v2.dll",
+  "BepInEx/plugins/SQLitePCLRaw.core.dll",
+  "BepInEx/plugins/SQLitePCLRaw.provider.e_sqlite3.dll",
+  "BepInEx/plugins/SixLabors.ImageSharp.dll",
+  "BepInEx/plugins/System.Buffers.dll",
+  "BepInEx/plugins/System.Memory.dll",
+  "BepInEx/plugins/System.Numerics.Vectors.dll",
+  "BepInEx/plugins/System.Text.Encoding.CodePages.dll",
 ];
 
 export function resolveTargetPlatforms(platformEnv) {
   if (!platformEnv) {
-    return ['macos', 'windows', 'linux'];
+    return ["linux"];
   }
 
-  const platform = platformAliases.get(platformEnv);
-  if (!platform) {
+  if (platformEnv !== "linux") {
     throw new Error(`Unsupported TAURI_ENV_PLATFORM value: ${platformEnv}`);
   }
 
-  return [platform];
+  return ["linux"];
 }
 
 export function requiredEntriesForPlatform(platform) {
-  if (platform === 'macos') {
+  if (platform === "linux") {
     return [
-      'run_bepinex.sh',
-      'libdoorstop.dylib',
-      'BepInEx/plugins/BazaarPlusPlus.dll',
-      'BepInEx/plugins/BazaarPlusPlus.version',
+      "winhttp.dll",
+      "doorstop_config.ini",
+      "BepInEx/plugins/BazaarPlusPlus.dll",
+      "BepInEx/plugins/BazaarPlusPlus.version",
+      "BepInEx/plugins/BazaarPlusPlus.ModApi.dll",
+      "BepInEx/plugins/BazaarPlusPlus.Localization.dll",
+      "BepInEx/plugins/BazaarPlusPlus.Storage.dll",
+      "BepInEx/plugins/BazaarPlusPlus.BazaarAgent.dll",
+      "BepInEx/plugins/BazaarPlusPlus.BazaarAgentHost.dll",
       ...managedPluginDependencies,
-      'BepInEx/plugins/libe_sqlite3.dylib'
-    ];
-  }
-
-  if (platform === 'windows' || platform === 'linux') {
-    return [
-      'winhttp.dll',
-      'doorstop_config.ini',
-      'BepInEx/plugins/BazaarPlusPlus.dll',
-      'BepInEx/plugins/BazaarPlusPlus.version',
-      ...managedPluginDependencies,
-      'BepInEx/plugins/e_sqlite3.dll'
+      "BepInEx/plugins/e_sqlite3.dll",
     ];
   }
 
@@ -72,55 +58,12 @@ export function requiredEntriesForPlatform(platform) {
 function sourceZipPathForPlatform(rootDir, platform) {
   return path.join(
     rootDir,
-    'src-tauri',
-    'resources',
-    'BepInExSource',
+    "src-tauri",
+    "resources",
+    "BepInExSource",
     platform,
-    'BepInEx.zip'
+    "BepInEx.zip",
   );
-}
-
-function sourceMacosLauncherPath(rootDir) {
-  return path.join(
-    rootDir,
-    'src-tauri',
-    'resources',
-    'SourceForBuild',
-    'macos',
-    'run_bepinex.sh'
-  );
-}
-
-export function assertMacosLauncherScriptIsSafe(
-  script,
-  label = 'run_bepinex.sh'
-) {
-  const forbiddenSnippets = [
-    'mktemp /tmp/bepinex_ents.XXXXXX.plist',
-    'codesign --remove-signature'
-  ];
-
-  for (const snippet of forbiddenSnippets) {
-    if (script.includes(snippet)) {
-      throw new Error(
-        `${label} contains forbidden launcher snippet: ${snippet}`
-      );
-    }
-  }
-
-  const requiredSnippets = [
-    'mktemp "${TMPDIR:-/tmp}/bepinex_ents.XXXXXX"',
-    'trap cleanup_entitlements EXIT HUP INT TERM',
-    'codesign --force --deep --sign - --entitlements "$_entitlements_file" "$app_path"'
-  ];
-
-  for (const snippet of requiredSnippets) {
-    if (!script.includes(snippet)) {
-      throw new Error(
-        `${label} is missing required launcher snippet: ${snippet}`
-      );
-    }
-  }
 }
 
 function findEndOfCentralDirectory(buffer) {
@@ -130,7 +73,7 @@ function findEndOfCentralDirectory(buffer) {
     }
   }
 
-  throw new Error('Zip end-of-central-directory record not found');
+  throw new Error("Zip end-of-central-directory record not found");
 }
 
 export function listZipEntries(buffer) {
@@ -152,7 +95,7 @@ export function listZipEntries(buffer) {
     const fileNameStart = cursor + 46;
     const fileNameEnd = fileNameStart + fileNameLength;
 
-    entries.push(buffer.toString('utf8', fileNameStart, fileNameEnd));
+    entries.push(buffer.toString("utf8", fileNameStart, fileNameEnd));
     cursor = fileNameEnd + extraLength + commentLength;
   }
 
@@ -175,9 +118,9 @@ export function readZipEntry(buffer, entryName) {
     const localHeaderOffset = buffer.readUInt32LE(cursor + 42);
     const fileNameStart = cursor + 46;
     const fileName = buffer.toString(
-      'utf8',
+      "utf8",
       fileNameStart,
-      fileNameStart + fileNameLength
+      fileNameStart + fileNameLength,
     );
 
     if (fileName === entryName || fileName.endsWith(`/${entryName}`)) {
@@ -189,14 +132,14 @@ export function readZipEntry(buffer, entryName) {
         localHeaderOffset + 30 + localFileNameLength + localExtraLength;
       const compressedData = buffer.subarray(
         dataStart,
-        dataStart + compressedSize
+        dataStart + compressedSize,
       );
 
-      if (compressionMethod === 0) return compressedData.toString('utf8');
+      if (compressionMethod === 0) return compressedData.toString("utf8");
       if (compressionMethod === 8)
-        return zlib.inflateRawSync(compressedData).toString('utf8');
+        return zlib.inflateRawSync(compressedData).toString("utf8");
       throw new Error(
-        `Unsupported compression method ${compressionMethod} for ${entryName}`
+        `Unsupported compression method ${compressionMethod} for ${entryName}`,
       );
     }
 
@@ -204,25 +147,6 @@ export function readZipEntry(buffer, entryName) {
   }
 
   return null;
-}
-
-function ensureMacosLauncherMatchesSource(rootDir, zipPath, buffer) {
-  const sourcePath = sourceMacosLauncherPath(rootDir);
-  const sourceScript = fs.readFileSync(sourcePath, 'utf8');
-  const zipScript = readZipEntry(buffer, 'run_bepinex.sh');
-
-  if (!zipScript) {
-    throw new Error(`${zipPath} is missing run_bepinex.sh content`);
-  }
-
-  assertMacosLauncherScriptIsSafe(sourceScript, sourcePath);
-  assertMacosLauncherScriptIsSafe(zipScript, `${zipPath}:run_bepinex.sh`);
-
-  if (zipScript !== sourceScript) {
-    throw new Error(
-      `${zipPath}:run_bepinex.sh does not match ${sourcePath}; rebuild the macOS BepInEx zip`
-    );
-  }
 }
 
 function ensureZipLooksValid(rootDir, zipPath, platform) {
@@ -239,94 +163,118 @@ function ensureZipLooksValid(rootDir, zipPath, platform) {
   const entries = listZipEntries(buffer);
   for (const requiredEntry of requiredEntriesForPlatform(platform)) {
     const present = entries.some(
-      (entry) => entry === requiredEntry || entry.endsWith(`/${requiredEntry}`)
+      (entry) => entry === requiredEntry || entry.endsWith(`/${requiredEntry}`),
     );
     if (!present) {
       throw new Error(
-        `${platform} zip is missing required entry '${requiredEntry}' in ${zipPath}`
+        `${platform} zip is missing required entry '${requiredEntry}' in ${zipPath}`,
       );
     }
   }
 
-  const version = readZipEntry(buffer, 'BazaarPlusPlus.version');
+  const version = readZipEntry(buffer, "BazaarPlusPlus.version");
   if (version) {
     console.log(`[${platform}] BazaarPlusPlus.version: ${version.trim()}`);
   }
-
-  if (platform === 'macos') {
-    ensureMacosLauncherMatchesSource(rootDir, zipPath, buffer);
-  }
 }
 
-export function macosTrampolineStubPath(rootDir) {
-  return path.join(
-    rootDir,
-    'src-tauri',
-    'resources',
-    'Trampoline',
-    'macos',
-    'bpp_launcher'
-  );
-}
+const generatedTypesDir = "src/types/generated";
 
-export function assertMacosTrampolineStub(rootDir) {
-  const stubPath = macosTrampolineStubPath(rootDir);
-  if (!fs.existsSync(stubPath)) {
-    throw new Error(
-      `Missing compiled macOS trampoline stub: ${stubPath}. ` +
-        'Run build.sh (which compiles it from SourceForBuild/macos/bpp_launcher.c) before bundling.'
-    );
+export function collectGeneratedFileSnapshot(rootDir) {
+  const generatedRoot = path.join(rootDir, generatedTypesDir);
+  if (!fs.existsSync(generatedRoot)) {
+    return [];
   }
 
-  const description = execFileSync('file', [stubPath], { encoding: 'utf8' });
-  if (!/Mach-O 64-bit executable arm64/.test(description)) {
-    throw new Error(
-      `macOS trampoline stub is not arm64 Mach-O (${stubPath}): ${description.trim()}`
-    );
+  const files = [];
+
+  function visit(directory) {
+    const entries = fs.readdirSync(directory, { withFileTypes: true });
+    entries.sort((left, right) => left.name.localeCompare(right.name));
+
+    for (const entry of entries) {
+      const absolutePath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        visit(absolutePath);
+        continue;
+      }
+
+      if (!entry.isFile()) {
+        continue;
+      }
+
+      const relativePath = path
+        .relative(rootDir, absolutePath)
+        .split(path.sep)
+        .join("/");
+      const hash = crypto
+        .createHash("sha256")
+        .update(fs.readFileSync(absolutePath))
+        .digest("hex");
+      files.push({ path: relativePath, hash });
+    }
   }
+
+  visit(generatedRoot);
+  return files;
 }
 
-const generatedTypesDir = 'src/types/generated';
+export function diffGeneratedFileSnapshots(before, after) {
+  const beforeByPath = new Map(before.map((file) => [file.path, file.hash]));
+  const afterByPath = new Map(after.map((file) => [file.path, file.hash]));
+  const paths = [
+    ...new Set([...beforeByPath.keys(), ...afterByPath.keys()]),
+  ].sort((left, right) => left.localeCompare(right));
+
+  return paths.flatMap((filePath) => {
+    if (!beforeByPath.has(filePath)) {
+      return [`?? ${filePath}`];
+    }
+
+    if (!afterByPath.has(filePath)) {
+      return [`D ${filePath}`];
+    }
+
+    return beforeByPath.get(filePath) === afterByPath.get(filePath)
+      ? []
+      : [`M ${filePath}`];
+  });
+}
 
 export function npmExecFileInvocation(
   args,
-  platform = process.platform,
-  env = process.env
+  _platform = process.platform,
+  _env = process.env,
 ) {
-  if (platform === 'win32') {
-    const command = env.ComSpec?.trim() || 'cmd.exe';
-    return { command, args: ['/d', '/s', '/c', 'npm', ...args] };
-  }
-
-  return { command: 'npm', args };
+  return { command: "npm", args };
 }
 
-export function assertBindingsUpToDate(rootDir) {
-  console.log('Checking TypeScript bindings...');
-  const npmInvocation = npmExecFileInvocation(['run', 'generate:bindings']);
+export function assertBindingsUpToDate(rootDir, execFile = execFileSync) {
+  console.log("Checking TypeScript bindings...");
+  const before = collectGeneratedFileSnapshot(rootDir);
+  const npmInvocation = npmExecFileInvocation(["run", "generate:bindings"]);
 
-  execFileSync(npmInvocation.command, npmInvocation.args, {
+  execFile(npmInvocation.command, npmInvocation.args, {
     cwd: rootDir,
-    stdio: 'inherit'
+    stdio: "inherit",
   });
 
-  const porcelain = execFileSync(
-    'git',
-    ['status', '--porcelain', '--untracked-files=all', '--', generatedTypesDir],
-    { cwd: rootDir, encoding: 'utf8' }
-  ).trim();
+  const changedFiles = diffGeneratedFileSnapshots(
+    before,
+    collectGeneratedFileSnapshot(rootDir),
+  );
 
-  if (porcelain) {
+  if (changedFiles.length > 0) {
     throw new Error(
       `Generated TypeScript bindings are out of date under ${generatedTypesDir}. ` +
-        'Run npm run generate:bindings and commit all files under that directory.\n' +
-        porcelain
+        "Run npm run generate:bindings and commit all files under that directory.\n" +
+        changedFiles.join("\n"),
     );
   }
 }
 
 export function runPrebuildCheck(rootDir, platformEnv) {
-  console.log('Running prebuild check...');
+  console.log("Running prebuild check...");
   assertBindingsUpToDate(rootDir);
   const snapshot = collectVersionSnapshot(rootDir);
   assertVersionsAreAligned(snapshot);
@@ -336,14 +284,8 @@ export function runPrebuildCheck(rootDir, platformEnv) {
     ensureZipLooksValid(
       rootDir,
       sourceZipPathForPlatform(rootDir, platform),
-      platform
+      platform,
     );
-  }
-
-  // The compiled arm64 stub is only produced on (and needed by) a macOS build
-  // host. Skip the check when cross-validating the macOS target from elsewhere.
-  if (process.platform === 'darwin' && platforms.includes('macos')) {
-    assertMacosTrampolineStub(rootDir);
   }
 }
 
@@ -353,7 +295,7 @@ const invokedAsScript =
 if (invokedAsScript) {
   try {
     runPrebuildCheck(process.cwd(), process.env.TAURI_ENV_PLATFORM);
-    console.log('prebuild-check: ok');
+    console.log("prebuild-check: ok");
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`prebuild-check: ${message}`);

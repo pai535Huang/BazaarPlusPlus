@@ -6,7 +6,6 @@ namespace BazaarPlusPlus.Game.CombatReplay.Video;
 
 internal enum VideoEncoderPlatform
 {
-    MacOS,
     Windows,
     Other,
 }
@@ -95,10 +94,6 @@ internal sealed class FfmpegVideoEncoderProfile
 
         return platform switch
         {
-            VideoEncoderPlatform.MacOS =>
-            [
-                Hardware("h264_videotoolbox", "yuv420p", "realtime-vbr", "-realtime 1"),
-            ],
             VideoEncoderPlatform.Windows =>
             [
                 Hardware("h264_nvenc", "yuv420p", "vbr"),
@@ -111,8 +106,6 @@ internal sealed class FfmpegVideoEncoderProfile
 
     internal static VideoEncoderPlatform DetectPlatform()
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            return VideoEncoderPlatform.MacOS;
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             return VideoEncoderPlatform.Windows;
         return VideoEncoderPlatform.Other;

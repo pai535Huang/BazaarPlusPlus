@@ -50,22 +50,12 @@
     <ProjectRoot>$(MSBuildThisFileDirectory)</ProjectRoot>
     <BPPInstallerSourcePath>$(ProjectRoot)/../../../bazaarplusplus-installer/src-tauri/resources</BPPInstallerSourcePath>
     <ManagedPathUnix>$(ManagedPath.Replace('\\', '/'))</ManagedPathUnix>
-    <HostArchitecture>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant())</HostArchitecture>
-    <MacSqliteRuntimeRid>osx-arm64</MacSqliteRuntimeRid>
-    <WindowsSqliteRuntimeRid>win-x64</WindowsSqliteRuntimeRid>
-    <FixedMacSqliteNativeFile>$(PkgSourceGear_sqlite3)/runtimes/$(MacSqliteRuntimeRid)/native/libe_sqlite3.dylib</FixedMacSqliteNativeFile>
-    <FixedMacAudioTapNativeFile>$(BPPInstallerSourcePath)/SourceForBuild/macos/BepInEx/plugins/libBppMacAudio.dylib</FixedMacAudioTapNativeFile>
-    <FixedWindowsSqliteNativeFile>$(PkgSourceGear_sqlite3)/runtimes/$(WindowsSqliteRuntimeRid)/native/e_sqlite3.dll</FixedWindowsSqliteNativeFile>
-    <!-- FFmpeg binary source (repackaged zips: a single ffmpeg(.exe) at the zip root) -->
-    <WindowsFfmpegZip>$(BPPInstallerSourcePath)/FfmpegSource/windows/ffmpeg.zip</WindowsFfmpegZip>
-    <MacFfmpegZip>$(BPPInstallerSourcePath)/FfmpegSource/macos/ffmpeg.zip</MacFfmpegZip>
-    <WindowsFfmpegLicense>$(BPPInstallerSourcePath)/FfmpegSource/windows/LICENSE.txt</WindowsFfmpegLicense>
-    <MacFfmpegLicense>$(BPPInstallerSourcePath)/FfmpegSource/macos/LICENSE.txt</MacFfmpegLicense>
-    <!-- Host platform's FFmpeg zip, used by the Debug copy-to-game step -->
-    <HostFfmpegZip
-      Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))"
-      >$(WindowsFfmpegZip)</HostFfmpegZip>
-    <HostFfmpegZip Condition="'$(HostFfmpegZip)' == ''">$(MacFfmpegZip)</HostFfmpegZip>
+    <!-- The Linux installer targets The Bazaar running through Proton, so bundled
+         native dependencies must still use the game's Windows ABI. -->
+    <ProtonSqliteRuntimeRid>win-x64</ProtonSqliteRuntimeRid>
+    <FixedProtonSqliteNativeFile>$(PkgSourceGear_sqlite3)/runtimes/$(ProtonSqliteRuntimeRid)/native/e_sqlite3.dll</FixedProtonSqliteNativeFile>
+    <ProtonFfmpegZip>$(BPPInstallerSourcePath)/FfmpegSource/proton/ffmpeg.zip</ProtonFfmpegZip>
+    <ProtonFfmpegLicense>$(BPPInstallerSourcePath)/FfmpegSource/proton/LICENSE.txt</ProtonFfmpegLicense>
   </PropertyGroup>
   <PropertyGroup Condition="'$(ManagedPath)' != '' and Exists('$(ManagedPathUnix)/Assembly-CSharp.dll')">
     <ManagedPathForReferences>$(ManagedPathUnix)</ManagedPathForReferences>
@@ -195,9 +185,7 @@
         Include="$(TargetDir)System.Text.Encoding.CodePages.dll"
         Condition="Exists('$(TargetDir)System.Text.Encoding.CodePages.dll')"
       />
-      <MacSqliteNativeFile Include="$(FixedMacSqliteNativeFile)" />
-      <MacAudioTapNativeFile Include="$(FixedMacAudioTapNativeFile)" />
-      <WindowsSqliteNativeFile Include="$(FixedWindowsSqliteNativeFile)" />
+      <ProtonSqliteNativeFile Include="$(FixedProtonSqliteNativeFile)" />
       <PluginManagedRuntimeFiles Include="$(TargetDir)BazaarPlusPlus.ModApi.dll" />
       <PluginManagedRuntimeFiles Include="$(TargetDir)BazaarPlusPlus.Localization.dll" />
       <PluginManagedRuntimeFiles
@@ -218,29 +206,16 @@
       Condition="'@(PluginManagedRuntimeFiles)' != ''"
     />
     <Copy
-      SourceFiles="@(MacSqliteNativeFile)"
-      DestinationFiles="$(GamePath)\BepInEx\plugins\libe_sqlite3.dylib"
-      SkipUnchangedFiles="true"
-      Condition="'@(MacSqliteNativeFile)' != ''"
-    />
-    <Copy
-      SourceFiles="@(MacAudioTapNativeFile)"
-      DestinationFiles="$(GamePath)\BepInEx\plugins\libBppMacAudio.dylib"
-      SkipUnchangedFiles="true"
-      Condition="'@(MacAudioTapNativeFile)' != ''"
-    />
-    <Copy
-      SourceFiles="@(WindowsSqliteNativeFile)"
+      SourceFiles="@(ProtonSqliteNativeFile)"
       DestinationFiles="$(GamePath)\BepInEx\plugins\e_sqlite3.dll"
       SkipUnchangedFiles="true"
-      Condition="'@(WindowsSqliteNativeFile)' != ''"
+      Condition="'@(ProtonSqliteNativeFile)' != ''"
     />
-    <!-- Unzip the host platform's bundled FFmpeg next to the mod for local recording tests -->
     <Unzip
-      SourceFiles="$(HostFfmpegZip)"
+      SourceFiles="$(ProtonFfmpegZip)"
       DestinationFolder="$(GamePath)\BepInEx\plugins"
       OverwriteReadOnlyFiles="true"
-      Condition="Exists('$(HostFfmpegZip)')"
+      Condition="Exists('$(ProtonFfmpegZip)')"
     />
     <WriteLinesToFile
       File="$(GamePath)\BepInEx\plugins\$(TargetName).version"
@@ -290,9 +265,7 @@
         Include="$(TargetDir)System.Text.Encoding.CodePages.dll"
         Condition="Exists('$(TargetDir)System.Text.Encoding.CodePages.dll')"
       />
-      <MacSqliteNativeFile Include="$(FixedMacSqliteNativeFile)" />
-      <MacAudioTapNativeFile Include="$(FixedMacAudioTapNativeFile)" />
-      <WindowsSqliteNativeFile Include="$(FixedWindowsSqliteNativeFile)" />
+      <ProtonSqliteNativeFile Include="$(FixedProtonSqliteNativeFile)" />
       <PluginManagedRuntimeFiles Include="$(TargetDir)BazaarPlusPlus.ModApi.dll" />
       <PluginManagedRuntimeFiles Include="$(TargetDir)BazaarPlusPlus.Localization.dll" />
       <PluginManagedRuntimeFiles
@@ -301,51 +274,29 @@
       />
     </ItemGroup>
     <ItemGroup>
-      <InstallerFilesToDelete Include="$(BPPInstallerSourcePath)/SourceForBuild/macos/BepInEx/plugins/BazaarPlusPlus.BazaarAgent.dll" />
-      <InstallerFilesToDelete Include="$(BPPInstallerSourcePath)/SourceForBuild/windows/BepInEx/plugins/BazaarPlusPlus.BazaarAgent.dll" />
-      <InstallerFilesToDelete Include="$(BPPInstallerSourcePath)/SourceForBuild/macos/BepInEx/plugins/BazaarPlusPlus.BazaarAgentHost.dll" />
-      <InstallerFilesToDelete Include="$(BPPInstallerSourcePath)/SourceForBuild/windows/BepInEx/plugins/BazaarPlusPlus.BazaarAgentHost.dll" />
+      <InstallerFilesToDelete Include="$(BPPInstallerSourcePath)/SourceForBuild/proton/BepInEx/plugins/BazaarPlusPlus.BazaarAgent.dll" />
+      <InstallerFilesToDelete Include="$(BPPInstallerSourcePath)/SourceForBuild/proton/BepInEx/plugins/BazaarPlusPlus.BazaarAgentHost.dll" />
     </ItemGroup>
     <Delete Files="@(InstallerFilesToDelete)" />
     <Copy
       SourceFiles="$(TargetDir)$(TargetName).dll"
-      DestinationFiles="$(BPPInstallerSourcePath)/SourceForBuild/macos/BepInEx/plugins/$(TargetName).dll"
-    />
-    <Copy
-      SourceFiles="$(TargetDir)$(TargetName).dll"
-      DestinationFiles="$(BPPInstallerSourcePath)/SourceForBuild/windows/BepInEx/plugins/$(TargetName).dll"
+      DestinationFiles="$(BPPInstallerSourcePath)/SourceForBuild/proton/BepInEx/plugins/$(TargetName).dll"
     />
     <Copy
       SourceFiles="$(TargetDir)$(TargetName).version"
-      DestinationFiles="$(BPPInstallerSourcePath)/SourceForBuild/macos/BepInEx/plugins/$(TargetName).version"
-    />
-    <Copy
-      SourceFiles="$(TargetDir)$(TargetName).version"
-      DestinationFiles="$(BPPInstallerSourcePath)/SourceForBuild/windows/BepInEx/plugins/$(TargetName).version"
+      DestinationFiles="$(BPPInstallerSourcePath)/SourceForBuild/proton/BepInEx/plugins/$(TargetName).version"
     />
     <Copy
       SourceFiles="@(PluginManagedRuntimeFiles)"
-      DestinationFolder="$(BPPInstallerSourcePath)/SourceForBuild/macos/BepInEx/plugins"
+      DestinationFolder="$(BPPInstallerSourcePath)/SourceForBuild/proton/BepInEx/plugins"
       SkipUnchangedFiles="true"
       Condition="'@(PluginManagedRuntimeFiles)' != ''"
     />
     <Copy
-      SourceFiles="@(PluginManagedRuntimeFiles)"
-      DestinationFolder="$(BPPInstallerSourcePath)/SourceForBuild/windows/BepInEx/plugins"
+      SourceFiles="@(ProtonSqliteNativeFile)"
+      DestinationFolder="$(BPPInstallerSourcePath)/SourceForBuild/proton/BepInEx/plugins"
       SkipUnchangedFiles="true"
-      Condition="'@(PluginManagedRuntimeFiles)' != ''"
-    />
-    <Copy
-      SourceFiles="@(MacSqliteNativeFile)"
-      DestinationFolder="$(BPPInstallerSourcePath)/SourceForBuild/macos/BepInEx/plugins"
-      SkipUnchangedFiles="true"
-      Condition="'@(MacSqliteNativeFile)' != ''"
-    />
-    <Copy
-      SourceFiles="@(WindowsSqliteNativeFile)"
-      DestinationFolder="$(BPPInstallerSourcePath)/SourceForBuild/windows/BepInEx/plugins"
-      SkipUnchangedFiles="true"
-      Condition="'@(WindowsSqliteNativeFile)' != ''"
+      Condition="'@(ProtonSqliteNativeFile)' != ''"
     />
     <Message
       Text="[BazaarPlusPlus] Successfully copied Release artifacts to installer source folder."
@@ -358,42 +309,20 @@
     AfterTargets="CopyToInstallerSource"
     Condition="'$(Configuration)' == 'Release' and Exists('$(BPPInstallerSourcePath)') and '$(BuildProductionPackage)' == 'true'"
   >
-    <Message Text="[BazaarPlusPlus] Building production installer package" Importance="high" />
-    <!-- Unzip the per-platform bundled FFmpeg into each payload tree's plugins dir -->
+    <Message Text="[BazaarPlusPlus] Preparing Linux Proton payload resources" Importance="high" />
     <Unzip
-      SourceFiles="$(MacFfmpegZip)"
-      DestinationFolder="$(BPPInstallerSourcePath)/SourceForBuild/macos/BepInEx/plugins"
+      SourceFiles="$(ProtonFfmpegZip)"
+      DestinationFolder="$(BPPInstallerSourcePath)/SourceForBuild/proton/BepInEx/plugins"
       OverwriteReadOnlyFiles="true"
-      Condition="Exists('$(MacFfmpegZip)')"
-    />
-    <Unzip
-      SourceFiles="$(WindowsFfmpegZip)"
-      DestinationFolder="$(BPPInstallerSourcePath)/SourceForBuild/windows/BepInEx/plugins"
-      OverwriteReadOnlyFiles="true"
-      Condition="Exists('$(WindowsFfmpegZip)')"
+      Condition="Exists('$(ProtonFfmpegZip)')"
     />
     <Copy
-      SourceFiles="$(MacFfmpegLicense)"
-      DestinationFiles="$(BPPInstallerSourcePath)/SourceForBuild/macos/BepInEx/plugins/ffmpeg-LICENSE.txt"
-      Condition="Exists('$(MacFfmpegLicense)')"
-    />
-    <Copy
-      SourceFiles="$(WindowsFfmpegLicense)"
-      DestinationFiles="$(BPPInstallerSourcePath)/SourceForBuild/windows/BepInEx/plugins/ffmpeg-LICENSE.txt"
-      Condition="Exists('$(WindowsFfmpegLicense)')"
-    />
-    <ZipDirectory
-      SourceDirectory="$(BPPInstallerSourcePath)/SourceForBuild/macos"
-      DestinationFile="$(BPPInstallerSourcePath)/BepInExSource/macos/BepInEx.zip"
-      Overwrite="true"
-    />
-    <ZipDirectory
-      SourceDirectory="$(BPPInstallerSourcePath)/SourceForBuild/windows"
-      DestinationFile="$(BPPInstallerSourcePath)/BepInExSource/windows/BepInEx.zip"
-      Overwrite="true"
+      SourceFiles="$(ProtonFfmpegLicense)"
+      DestinationFiles="$(BPPInstallerSourcePath)/SourceForBuild/proton/BepInEx/plugins/ffmpeg-LICENSE.txt"
+      Condition="Exists('$(ProtonFfmpegLicense)')"
     />
     <Message
-      Text="[BazaarPlusPlus] Successfully built mod zip and copied to installer source folder!!!"
+      Text="[BazaarPlusPlus] Successfully refreshed Linux Proton payload resources."
       Importance="high"
     />
   </Target>

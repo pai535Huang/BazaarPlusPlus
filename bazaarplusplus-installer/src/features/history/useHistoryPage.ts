@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { HistoryRunList, HistoryRunRow } from '../../types/backend';
-import { toErrorMessage } from '../shared/errors';
-import { ensureStreamSession } from '../shared/streamSessionApi';
-import { optionalStripPreviewUrl } from './stripPreview';
-import { emptyHistoryRunList, listHistoryRuns } from './historyApi';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { HistoryRunList, HistoryRunRow } from "../../types/backend";
+import { toErrorMessage } from "../shared/errors";
+import { ensureStreamSession } from "../shared/streamSessionApi";
+import { optionalStripPreviewUrl } from "./stripPreview";
+import { emptyHistoryRunList, listHistoryRuns } from "./historyApi";
 
 export function useHistoryPage() {
   const [payload, setPayload] = useState<HistoryRunList>(emptyHistoryRunList);
@@ -17,7 +17,7 @@ export function useHistoryPage() {
     try {
       const [session, list] = await Promise.all([
         ensureStreamSession(),
-        listHistoryRuns()
+        listHistoryRuns(),
       ]);
       setBaseUrl(session.base_url);
       setPayload(list);
@@ -34,7 +34,7 @@ export function useHistoryPage() {
 
   const previewUrl = useCallback(
     (run: HistoryRunRow) => optionalStripPreviewUrl(baseUrl, run.strip_url),
-    [baseUrl]
+    [baseUrl],
   );
 
   const summary = useMemo(
@@ -43,10 +43,10 @@ export function useHistoryPage() {
       videos: String(payload.summary.videos),
       winRate:
         payload.summary.win_rate === null
-          ? '-'
-          : `${Math.round(payload.summary.win_rate * 100)}%`
+          ? "-"
+          : `${Math.round(payload.summary.win_rate * 100)}%`,
     }),
-    [payload.summary]
+    [payload.summary],
   );
 
   return {
@@ -55,6 +55,6 @@ export function useHistoryPage() {
     loading,
     error,
     previewUrl,
-    refresh
+    refresh,
   };
 }

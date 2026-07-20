@@ -4,7 +4,6 @@ namespace BazaarPlusPlus.Game.CombatReplay.Audio;
 internal enum ReplayAudioBackend
 {
     WasapiLoopback,
-    CoreAudioProcessTap,
     Unsupported,
 }
 
@@ -35,9 +34,8 @@ internal readonly record struct ReplayAudioCaptureStartOutcome(
 
 /// <summary>
 /// A replay-audio capture source that writes a streaming WAV the recorder later muxes into the MP4.
-/// Implemented by WasapiLoopbackCaptureTap (Windows), CoreAudioProcessTapCaptureTap (macOS ≥ 15), and
-/// UnsupportedPlatformAudioCapture (no-op fallback) so the recorder can swap capture strategies without
-/// changing its lifecycle/teardown code.
+/// Implemented by WasapiLoopbackCaptureTap for the Windows ABI used by Proton and
+/// UnsupportedPlatformAudioCapture as a no-op fallback.
 /// </summary>
 internal interface IReplayAudioCaptureTap : IDisposable
 {

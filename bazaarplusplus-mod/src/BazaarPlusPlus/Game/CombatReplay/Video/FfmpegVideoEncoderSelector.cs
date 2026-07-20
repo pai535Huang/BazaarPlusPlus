@@ -77,7 +77,6 @@ internal static class FfmpegVideoEncoderSelector
     internal static string[] CandidateCodecsForTests(VideoEncoderPlatform platform) =>
         platform switch
         {
-            VideoEncoderPlatform.MacOS => ["h264_videotoolbox", "libx264"],
             VideoEncoderPlatform.Windows => ["h264_nvenc", "h264_qsv", "h264_amf", "libx264"],
             _ => ["libx264"],
         };

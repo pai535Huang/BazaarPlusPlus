@@ -1,10 +1,10 @@
-import { invokeCommand } from '../../api/tauri';
-import { hasTauriRuntime } from '../../api/runtime';
-import type { StreamServiceStatus } from '../../types/backend';
+import { invokeCommand } from "../../api/tauri";
+import { hasTauriRuntime } from "../../api/runtime";
+import type { StreamServiceStatus } from "../../types/backend";
 
 export const idleStreamStatus: StreamServiceStatus = {
   running: false,
-  host: '127.0.0.1',
+  host: "127.0.0.1",
   port: null,
   base_url: null,
   overlay_url: null,
@@ -15,15 +15,15 @@ export const idleStreamStatus: StreamServiceStatus = {
   active_window_offset: 0,
   db: {
     found: false,
-    path: null
+    path: null,
   },
   window: {
     total_records: 0,
     existing_before_start: 0,
     captured_since_start: 0,
     current_hero: null,
-    current_start_label: null
-  }
+    current_start_label: null,
+  },
 };
 
 export async function ensureStreamSession() {
@@ -32,7 +32,7 @@ export async function ensureStreamSession() {
   }
 
   // This intentionally starts the local HTTP service when it is not running.
-  return invokeCommand('ensure_stream_session', {});
+  return invokeCommand("ensure_stream_session", {});
 }
 
 export async function getStreamStatus() {
@@ -40,5 +40,5 @@ export async function getStreamStatus() {
     return idleStreamStatus;
   }
 
-  return invokeCommand('get_stream_status');
+  return invokeCommand("get_stream_status");
 }

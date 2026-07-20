@@ -1,14 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import type { HistoryRunDetail } from '../../types/backend';
-import { toErrorMessage } from '../shared/errors';
-import { useAsyncAction } from '../shared/useAsyncAction';
+import { useCallback, useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import type { HistoryRunDetail } from "../../types/backend";
+import { toErrorMessage } from "../shared/errors";
+import { useAsyncAction } from "../shared/useAsyncAction";
 import {
   deleteBattleVideo,
   loadHistoryRunDetail,
   revealBattleVideo,
-  revealRunScreenshot
-} from './historyApi';
+  revealRunScreenshot,
+} from "./historyApi";
 
 export function useRunDetailPage() {
   const { runId } = useParams<{ runId: string }>();
@@ -40,14 +40,14 @@ export function useRunDetailPage() {
 
   const revealScreenshot = useCallback(() => {
     if (!detail) return;
-    void run('screenshot', () => revealRunScreenshot(detail.run.run_id));
+    void run("screenshot", () => revealRunScreenshot(detail.run.run_id));
   }, [detail, run]);
 
   const revealVideo = useCallback(
     (battleId: string, videoId?: string) => {
       void run(`video:${battleId}`, () => revealBattleVideo(battleId, videoId));
     },
-    [run]
+    [run],
   );
 
   const deleteVideo = useCallback(
@@ -55,7 +55,7 @@ export function useRunDetailPage() {
       run(`delete:${battleId}`, async () => {
         setDetail(await deleteBattleVideo(battleId, videoId));
       }),
-    [run]
+    [run],
   );
 
   return {
@@ -67,6 +67,6 @@ export function useRunDetailPage() {
     refresh,
     revealScreenshot,
     revealVideo,
-    deleteVideo
+    deleteVideo,
   };
 }

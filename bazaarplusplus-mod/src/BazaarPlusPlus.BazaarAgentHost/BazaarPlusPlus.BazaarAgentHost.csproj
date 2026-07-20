@@ -96,7 +96,7 @@
     />
   </Target>
 
-  <!-- Release: copy the host + pure-core dlls into both installer payload trees. -->
+  <!-- Release: copy the host + pure-core dlls into the Linux/Proton installer payload. -->
   <Target
     Name="CopyHostToInstallerSource"
     AfterTargets="Build"
@@ -109,12 +109,7 @@
     </ItemGroup>
     <Copy
       SourceFiles="@(HostArtifacts)"
-      DestinationFolder="$(BPPInstallerSourcePath)/SourceForBuild/macos/BepInEx/plugins"
-      SkipUnchangedFiles="true"
-    />
-    <Copy
-      SourceFiles="@(HostArtifacts)"
-      DestinationFolder="$(BPPInstallerSourcePath)/SourceForBuild/windows/BepInEx/plugins"
+      DestinationFolder="$(BPPInstallerSourcePath)/SourceForBuild/proton/BepInEx/plugins"
       SkipUnchangedFiles="true"
     />
     <Message
@@ -136,13 +131,8 @@
       Importance="high"
     />
     <ZipDirectory
-      SourceDirectory="$(BPPInstallerSourcePath)/SourceForBuild/macos"
-      DestinationFile="$(BPPInstallerSourcePath)/BepInExSource/macos/BepInEx.zip"
-      Overwrite="true"
-    />
-    <ZipDirectory
-      SourceDirectory="$(BPPInstallerSourcePath)/SourceForBuild/windows"
-      DestinationFile="$(BPPInstallerSourcePath)/BepInExSource/windows/BepInEx.zip"
+      SourceDirectory="$(BPPInstallerSourcePath)/SourceForBuild/proton"
+      DestinationFile="$(BPPInstallerSourcePath)/BepInExSource/linux/BepInEx.zip"
       Overwrite="true"
     />
     <Message

@@ -1,4 +1,5 @@
 use keyvalues_parser::{Obj, Parser, Value};
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
@@ -72,89 +73,18 @@ fn find_game_in_library_vdf(vdf_content: &str, app_id: &str) -> Option<String> {
 
 fn candidate_steam_paths() -> Vec<PathBuf> {
     let mut candidates = Vec::new();
+    let mut seen = HashSet::new();
+    let linux_candidates = [
+        dirs::home_dir().map(|home| home.join(".local/share/Steam")),
+        dirs::home_dir().map(|home| home.join(".steam/steam")),
+        dirs::home_dir()
+            .map(|home| home.join(".var/app/com.valvesoftware.Steam/.local/share/Steam")),
+    ];
 
-    #[cfg(target_os = "macos")]
-    {
-        if let Some(path) =
-            dirs::home_dir().map(|home| home.join("Library/Application Support/Steam"))
-        {
-            if path.exists() {
-                candidates.push(path);
-            }
-        }
-    }
-
-    #[cfg(target_os = "linux")]
-    {
-        use std::collections::HashSet;
-
-        let mut seen = HashSet::new();
-        let linux_candidates = [
-            dirs::home_dir().map(|home| home.join(".local/share/Steam")),
-            dirs::home_dir().map(|home| home.join(".steam/steam")),
-            dirs::home_dir()
-                .map(|home| home.join(".var/app/com.valvesoftware.Steam/.local/share/Steam")),
-        ];
-
-        for candidate in linux_candidates.into_iter().flatten() {
-            let canonical = candidate.canonicalize().unwrap_or(candidate);
-            if canonical.exists() && seen.insert(canonical.clone()) {
-                candidates.push(canonical);
-            }
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        use std::collections::HashSet;
-        use winreg::enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE};
-        use winreg::RegKey;
-
-        let mut seen = HashSet::new();
-        let registry_candidates = [
-            (HKEY_CURRENT_USER, r"Software\Valve\Steam", "SteamPath"),
-            (HKEY_CURRENT_USER, r"Software\Valve\Steam", "InstallPath"),
-            (HKEY_LOCAL_MACHINE, r"Software\Valve\Steam", "InstallPath"),
-            (HKEY_LOCAL_MACHINE, r"Software\Valve\Steam", "SteamPath"),
-            (
-                HKEY_LOCAL_MACHINE,
-                r"Software\WOW6432Node\Valve\Steam",
-                "InstallPath",
-            ),
-            (
-                HKEY_LOCAL_MACHINE,
-                r"Software\WOW6432Node\Valve\Steam",
-                "SteamPath",
-            ),
-        ];
-
-        for (root, key_path, value_name) in registry_candidates {
-            let root_key = RegKey::predef(root);
-            if let Ok(key) = root_key.open_subkey(key_path) {
-                if let Ok(path) = key.get_value::<String, _>(value_name) {
-                    let path = PathBuf::from(path.trim());
-                    if path.exists() && seen.insert(path.clone()) {
-                        candidates.push(path);
-                    }
-                }
-            }
-        }
-
-        let default_candidates = [
-            std::env::var_os("ProgramFiles(x86)")
-                .map(PathBuf::from)
-                .map(|path| path.join("Steam")),
-            std::env::var_os("ProgramFiles")
-                .map(PathBuf::from)
-                .map(|path| path.join("Steam")),
-            Some(PathBuf::from(r"C:\Program Files (x86)\Steam")),
-            Some(PathBuf::from(r"C:\Program Files\Steam")),
-        ];
-
-        for candidate in default_candidates.into_iter().flatten() {
-            if candidate.exists() && seen.insert(candidate.clone()) {
-                candidates.push(candidate);
-            }
+    for candidate in linux_candidates.into_iter().flatten() {
+        let canonical = candidate.canonicalize().unwrap_or(candidate);
+        if canonical.exists() && seen.insert(canonical.clone()) {
+            candidates.push(canonical);
         }
     }
 
@@ -235,24 +165,6 @@ fn get_game_path_from_detected_steam_roots(
 
     if let Some(path) = get_game_path_from_steam_roots(steam_roots) {
         return Some(path);
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        let fallback_candidates = crate::services::game_path::fallback_game_candidates();
-        crate::services::debug_log!(
-            "[detect::steam] probing common Windows candidates count={}",
-            fallback_candidates.len()
-        );
-        for path in fallback_candidates {
-            if path.exists() {
-                crate::services::debug_log!(
-                    "[detect::steam] hit from common Windows candidate game_path={}",
-                    path.display()
-                );
-                return Some(path);
-            }
-        }
     }
 
     crate::services::debug_log!("[detect::steam] failed to resolve game path");
@@ -346,7 +258,7 @@ mod tests {
 {
     "0"
     {
-        "path"      "C:\Program Files (x86)\Steam"
+        "path"      "/home/me/.local/share/Steam"
         "apps"
         {
             "730"   "1"
@@ -354,7 +266,7 @@ mod tests {
     }
     "1"
     {
-        "path"      "D:\SteamLibrary"
+        "path"      "/mnt/games/SteamLibrary"
         "apps"
         {
             "1617400"   "1"
@@ -364,7 +276,7 @@ mod tests {
 
         let path = find_game_in_library_vdf(vdf, "1617400");
 
-        assert_eq!(path.as_deref(), Some(r"D:\SteamLibrary"));
+        assert_eq!(path.as_deref(), Some("/mnt/games/SteamLibrary"));
     }
 
     #[test]
@@ -374,7 +286,7 @@ mod tests {
 {
     "0"
     {
-        "path"      "C:\Program Files (x86)\Steam"
+        "path"      "/home/me/.local/share/Steam"
         "apps"
         {
             "730"   "1"
@@ -394,11 +306,11 @@ mod tests {
 {
     "0"
     {
-        "path"      "C:\Program Files (x86)\Steam"
+        "path"      "/home/me/.local/share/Steam"
     }
     "1"
     {
-        "path"      "D:\SteamLibrary"
+        "path"      "/mnt/games/SteamLibrary"
         "apps"
         {
             "1617400"   "1"
@@ -411,8 +323,8 @@ mod tests {
         assert_eq!(
             folders,
             vec![
-                (r"C:\Program Files (x86)\Steam".to_string(), false),
-                (r"D:\SteamLibrary".to_string(), true)
+                ("/home/me/.local/share/Steam".to_string(), false),
+                ("/mnt/games/SteamLibrary".to_string(), true)
             ]
         );
     }
@@ -457,13 +369,6 @@ mod tests {
     }
 
     fn create_valid_game_marker(game_dir: &Path) {
-        #[cfg(target_os = "macos")]
-        std::fs::create_dir_all(game_dir.join("TheBazaar.app")).unwrap();
-
-        #[cfg(any(target_os = "windows", target_os = "linux"))]
         std::fs::write(game_dir.join("TheBazaar.exe"), b"exe").unwrap();
-
-        #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
-        std::fs::write(game_dir.join("TheBazaar"), b"exe").unwrap();
     }
 }

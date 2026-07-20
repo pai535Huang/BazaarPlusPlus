@@ -135,17 +135,6 @@ fn require_video_file_exists(path: &Path) -> Result<(), String> {
         .ok_or_else(|| format!("Video file was not found at {}.", path.display()))
 }
 
-#[cfg(target_os = "windows")]
-fn strip_extended_length_prefix(value: &str) -> String {
-    if let Some(stripped) = value.strip_prefix(r"\\?\UNC\") {
-        format!(r"\\{stripped}")
-    } else if let Some(stripped) = value.strip_prefix(r"\\?\") {
-        stripped.to_string()
-    } else {
-        value.to_string()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::{history_paths_for_game_path, require_video_file_exists};
@@ -190,39 +179,12 @@ mod tests {
 }
 
 pub fn reveal_in_file_browser(path: &Path) -> Result<(), String> {
-    #[cfg(target_os = "windows")]
-    {
-        use std::os::windows::process::CommandExt;
-
-        let canonical = std::fs::canonicalize(path)
-            .map(|buf| strip_extended_length_prefix(&buf.to_string_lossy()))
-            .unwrap_or_else(|_| path.to_string_lossy().into_owned());
-
-        Command::new("explorer")
-            .raw_arg(format!("/select,\"{}\"", canonical))
-            .spawn()
-            .map_err(|err| format!("failed to reveal file in Explorer: {err}"))?;
-        return Ok(());
-    }
-
-    #[cfg(target_os = "macos")]
-    {
-        Command::new("open")
-            .args(["-R", &path.to_string_lossy()])
-            .spawn()
-            .map_err(|err| format!("failed to reveal file in Finder: {err}"))?;
-        return Ok(());
-    }
-
-    #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
-    {
-        let parent = path
-            .parent()
-            .ok_or_else(|| "file parent directory is missing".to_string())?;
-        Command::new("xdg-open")
-            .arg(parent)
-            .spawn()
-            .map_err(|err| format!("failed to open file directory: {err}"))?;
-        Ok(())
-    }
+    let parent = path
+        .parent()
+        .ok_or_else(|| "file parent directory is missing".to_string())?;
+    Command::new("xdg-open")
+        .arg(parent)
+        .spawn()
+        .map_err(|err| format!("failed to open file directory: {err}"))?;
+    Ok(())
 }

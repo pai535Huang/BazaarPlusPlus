@@ -8,7 +8,7 @@
 
 [![Version](https://img.shields.io/badge/version-4.2.0-6dd9a0?style=flat-square)](https://bazaarplusplus.com)
 [![License](https://img.shields.io/badge/license-MIT-e8c87a?style=flat-square)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%28Proton%29-c1875a?style=flat-square)](https://bazaarplusplus.com/download)
+[![Platform](https://img.shields.io/badge/platform-Linux%20%28Proton%29-c1875a?style=flat-square)](https://bazaarplusplus.com/download)
 [![BepInEx](https://img.shields.io/badge/BepInEx-5.x-8a6d3b?style=flat-square)](https://github.com/BepInEx/BepInEx)
 [![.NET](https://img.shields.io/badge/.NET-Standard%202.1-512bd4?style=flat-square)](https://learn.microsoft.com/dotnet/standard/net-standard)
 [![Tauri](https://img.shields.io/badge/Tauri-2.x-24c8d8?style=flat-square)](https://tauri.app)
@@ -18,7 +18,7 @@
 
 ---
 
-BazaarPlusPlus is an open-source project for *The Bazaar*. The in-game BepInEx mod adds a card collection browser, run history, combat replays, tooltip previews, anonymous mode, Chinese terminology, and related quality-of-life features. The companion desktop installer handles download, install, repair, auto-update, and the stream overlay.
+BazaarPlusPlus is an open-source project for *The Bazaar* on Linux/Proton. The in-game BepInEx mod adds a card collection browser, run history, combat replays, tooltip previews, anonymous mode, Chinese terminology, and related quality-of-life features. This repo also keeps the shared resource tree and minimal helper tooling needed for Linux direct install.
 
 This project is a fork of [BazaarPlusPlus](https://github.com/cauyxy/BazaarPlusPlus); it primarily adds Linux Steam client compatibility and source-build workflows.
 
@@ -26,36 +26,51 @@ This project is a fork of [BazaarPlusPlus](https://github.com/cauyxy/BazaarPlusP
 
 ## Quick Start
 
-### Windows / macOS
-
-1. Open [bazaarplusplus.com/download](https://bazaarplusplus.com/download?lang=en) and choose the installer for your system.
-2. Close the game before running the installer. For updates, uninstall the old build before installing the new one.
-3. Launch *The Bazaar* once after installation so BazaarPlusPlus can finish setup.
-4. On the main menu, confirm that the **Card Collection** button appears and the footer version text includes `BPP version`.
-
 Feature guides, hotkeys, and installation details live at [bazaarplusplus.com/tutorial](https://bazaarplusplus.com/tutorial?lang=en).
 
 ### Linux (Debian/Ubuntu)
 
-For a direct Proton install, you can copy the required files straight into the Steam game directory without building a `.deb` package:
+For a direct Proton install, you can copy the required files straight into the Steam game directory without building a `.deb` package.
 
-1. Run the shortcut installer command:
-   ```bash
-   cd bazaarplusplus-mod
-   ./run.sh install --skip-build
-   ```
-2. If automatic Steam detection fails, point it at the game directory explicitly:
-   ```bash
-   ./run.sh install --game-dir "/path/to/steamapps/common/The Bazaar" --skip-build
-   ```
-3. In Steam, open **Library** → right-click **The Bazaar** → **Properties** → **Launch Options**, then set:
-   ```bash
-   WINEDLLOVERRIDES="winhttp=n,b" %command%
-   ```
-4. Launch the game once, then optionally verify the BepInEx log:
-   ```bash
-   ./run.sh proton-log
-   ```
+If this checkout already contains a complete Proton payload, you can run the shortest command:
+
+```bash
+cd bazaarplusplus-mod
+./run.sh install --skip-build
+```
+
+If the payload is not present but the machine has .NET SDK 8+ and a Steam install of The Bazaar, run without `--skip-build` to let the script build first and then install:
+
+```bash
+cd bazaarplusplus-mod
+./run.sh install --game-dir "/path/to/steamapps/common/The Bazaar"
+```
+
+Or build the payload upfront, then install:
+
+```bash
+cd bazaarplusplus-mod
+./run.sh build-payload --game-dir "/path/to/steamapps/common/The Bazaar"
+./run.sh install --skip-build
+```
+
+If automatic Steam detection fails, point it at the game directory explicitly:
+
+```bash
+./run.sh install --game-dir "/path/to/steamapps/common/The Bazaar" --skip-build
+```
+
+In Steam, open **Library** → right-click **The Bazaar** → **Properties** → **Launch Options**, then set:
+
+```bash
+WINEDLLOVERRIDES="winhttp=n,b" %command%
+```
+
+Launch the game once, then optionally verify the BepInEx log:
+
+```bash
+./run.sh proton-log
+```
 
 ## Feature Overview
 
@@ -70,35 +85,29 @@ For a direct Proton install, you can copy the required files straight into the S
 - **Enchant and Upgrade Previews**: Preview post-enchant or post-upgrade item values directly in tooltips.
 - **Chinese Terminology Modes**: Simplified Chinese plus Taiwan and Hong Kong Traditional terminology styles.
 
-### Desktop Installer
+### Linux install and shared resources
 
-- **Cross-platform install**: Windows, macOS, and Linux Steam Proton environments, with automatic Steam game-directory detection.
-- **Linux Proton support**: On Linux, installs the Windows Doorstop/BepInEx payload for Proton and writes the `WINEDLLOVERRIDES="winhttp=n,b" %command%` launch option automatically.
-- **Repair / uninstall / reset local data**: Recover from broken installs, replay-data issues, or local-state corruption.
-- **Run history management**: View, locate, and clean up locally saved run records and replay videos.
-- **Stream Mode**: Start a localhost browser-source service for OBS and similar tools.
-- **Auto-update**: Uses Tauri Updater to check for new releases and prompt when available.
+- **Linux Steam Proton direct install**: Use `./run.sh install` to auto-detect the Steam game directory and copy the required Proton payload.
+- **Repair / reinstall support**: The repo keeps the shared resource tree that `run.sh install` and related helpers reuse.
+- **Stream assets**: Stream overlay static assets are kept in-tree for Linux use.
 
 ## Repository Layout
 
 ```
 .
 ├── bazaarplusplus-mod/                       # BepInEx mod source
-│   ├── run.sh                                # Common build/test/format/decompile entry point
+│   ├── run.sh                                # Linux build/install/format entry point
 │   └── src/
 │       ├── BazaarPlusPlus/                   # Main mod: Game, Patches, Resources, Data
 │       ├── BazaarPlusPlus.ModApi/            # HTTP client for the mod backend
 │       ├── BazaarPlusPlus.Storage/           # Local run logs, screenshots, and SQLite storage
 │       └── BazaarPlusPlus.Localization/      # Chinese terminology and localization engine
-└── bazaarplusplus-installer/                 # Desktop installer
-    ├── src/                                  # Vite + React frontend
-    │   ├── pages/ features/ layouts/ api/    # Pages, feature state, shell, and Tauri calls
-    │   └── types/generated/                  # Rust -> TypeScript binding snapshot
-    ├── src-tauri/                            # Tauri 2 / Rust backend
-    │   ├── src/commands/ services/ history/  # Install, detect, history, and stream services
-    │   └── resources/                        # BepInEx, FFmpeg, stream overlay, install payload
-    ├── scripts/                              # Binding, manifest, and prebuild scripts
-    └── build.sh                              # Local development and release packaging entry point
+└── bazaarplusplus-installer/                 # Linux shared resources and minimal helper tooling
+    ├── src/                                  # If a local Linux UI is still kept, its frontend code lives here
+    ├── src-tauri/                            # Minimal Linux Tauri shell and resource directory
+    │   └── resources/                        # Proton payload, FFmpeg, stream overlay, and other shared assets
+    ├── scripts/                              # Binding and prebuild helper scripts
+    └── build.sh                              # Local Linux dev/build helper entry point
 ```
 
 ## Building From Source
@@ -107,30 +116,32 @@ For a direct Proton install, you can copy the required files straight into the S
 
 - **Mod**: .NET SDK 8+ and a local Steam install of *The Bazaar* so game assemblies can be resolved.
 - **Installer**: Node.js 20+, the Rust toolchain, and the system dependencies listed in the [Tauri prerequisites](https://tauri.app/start/prerequisites/).
-- **Windows**: PowerShell 7.6.0 or newer for the build scripts and development flow.
-- **Linux**: The Steam Linux client and a Proton install of *The Bazaar* are needed for local testing. Production packaging creates a `.deb` and requires the usual Tauri Linux packaging dependencies. If `zip` is unavailable, the build script falls back to `7z` when creating the Linux payload resource archive.
+- **Linux**: The Steam Linux client and a Proton install of *The Bazaar* are needed for local testing. If you use `./run.sh install --skip-build` for a direct install, the current checkout must also already contain reusable Release artifacts; otherwise, remove `--skip-build` in an environment that has .NET SDK 8+, or build the mod once beforehand. If `zip` is unavailable, the helper scripts fall back to `7z` when creating the Linux Proton payload resource archive.
 
 ### Build the Mod
 
 ```bash
 cd bazaarplusplus-mod
 
-# Development build: resolves the local game directory and copies the Debug DLL into BepInEx/plugins
-./run.sh build
+# Build the mod and refresh the Proton payload (main plugin plus BazaarAgent host)
+./run.sh build-payload --game-dir "/path/to/steamapps/common/The Bazaar"
 
-# Build Debug + Release in one pass
-./run.sh all
+# Build only the Release mod (without refreshing the installer payload)
+./run.sh build
 
 # Override the game assembly directory explicitly
 dotnet build src/BazaarPlusPlus/BazaarPlusPlus.csproj \
-  -c Debug \
+  -c Release \
   -p:ManagedPath="<Steam>/steamapps/common/The Bazaar/.../Managed"
 ```
 
 ### Build the Installer
 
 ```bash
-cd bazaarplusplus-installer
+cd bazaarplusplus-mod
+./run.sh build-payload --game-dir "/path/to/steamapps/common/The Bazaar"
+
+cd ../bazaarplusplus-installer
 
 npm install
 npm run dev        # Vite frontend dev server
@@ -140,12 +151,10 @@ npm run check
 npm run test
 npm run format
 
-./build.sh --prod  # production package for the host platform; creates a .deb on Linux
+./build.sh --prod  # refresh the Linux Proton resource zip and build the local Linux app binary
 ```
 
-Before packaging, the script syncs versions, runs prebuild checks, and validates the BepInEx payload needed for the current host platform. Linux builds do not commit a pregenerated zip; `./build.sh --prod` creates `BepInExSource/linux/BepInEx.zip` from `src-tauri/resources/SourceForBuild/windows` for Proton, then asks Tauri to bundle only the `.deb`.
-
-Release signing, notarization, and R2 upload flows depend on local environment variables and `signing-secrets/`, which are intentionally not committed. Local Linux `.deb` builds do not require the updater signing key. A full release build also requires a local game install, signing material, and the platform dependencies — the public source tree alone is not enough.
+`build-payload` only refreshes the Proton mod payload reused by the installer; it does not produce a `.deb` package. The installer helper script syncs versions, runs prebuild checks, and validates the Proton payload needed by the current Linux-only repo. Linux builds do not commit a pregenerated zip; `./build.sh --prod` refreshes `BepInExSource/linux/BepInEx.zip` from the installer's Proton payload source directory before building the local app binary.
 
 ## Derivative Work Notice
 

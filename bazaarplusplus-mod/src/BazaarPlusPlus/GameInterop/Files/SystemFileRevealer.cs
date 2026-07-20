@@ -6,7 +6,6 @@ namespace BazaarPlusPlus.GameInterop.Files;
 
 internal enum SystemFileRevealPlatform
 {
-    MacOS,
     Windows,
     Linux,
 }
@@ -68,15 +67,12 @@ internal static class SystemFileRevealer
     ) =>
         platform switch
         {
-            SystemFileRevealPlatform.MacOS => new("/usr/bin/open", $"-R {Quote(fullPath)}"),
             SystemFileRevealPlatform.Windows => new("explorer.exe", $"/select,{Quote(fullPath)}"),
             _ => new("xdg-open", Quote(Path.GetDirectoryName(fullPath) ?? fullPath)),
         };
 
     private static SystemFileRevealPlatform DetectPlatform()
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            return SystemFileRevealPlatform.MacOS;
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             return SystemFileRevealPlatform.Windows;
         return SystemFileRevealPlatform.Linux;

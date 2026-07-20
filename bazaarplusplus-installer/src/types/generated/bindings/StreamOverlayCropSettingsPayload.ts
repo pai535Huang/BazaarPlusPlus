@@ -2,4 +2,8 @@
 import type { StreamOverlayCropSettings } from "./StreamOverlayCropSettings";
 import type { StreamOverlayDisplayMode } from "./StreamOverlayDisplayMode";
 
-export type StreamOverlayCropSettingsPayload = { crop: StreamOverlayCropSettings, code: string, display_mode: StreamOverlayDisplayMode, };
+export type StreamOverlayCropSettingsPayload = {
+  crop: StreamOverlayCropSettings;
+  code: string;
+  display_mode: StreamOverlayDisplayMode;
+};

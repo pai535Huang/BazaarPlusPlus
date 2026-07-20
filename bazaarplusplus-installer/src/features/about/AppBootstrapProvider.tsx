@@ -1,9 +1,9 @@
-import { createContext, use } from 'react';
-import type { ReactNode } from 'react';
+import { createContext, use } from "react";
+import type { ReactNode } from "react";
 import {
   useAppBootstrapState,
-  type AppBootstrapController
-} from './useAppBootstrap';
+  type AppBootstrapController,
+} from "./useAppBootstrap";
 
 const AppBootstrapContext = createContext<AppBootstrapController | null>(null);
 
@@ -20,7 +20,7 @@ export function useAppBootstrap() {
   const app = use(AppBootstrapContext);
   if (!app) {
     throw new Error(
-      'useAppBootstrap must be used inside AppBootstrapProvider.'
+      "useAppBootstrap must be used inside AppBootstrapProvider.",
     );
   }
   return app;

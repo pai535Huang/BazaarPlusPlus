@@ -1,12 +1,6 @@
 mod payload;
-mod trampoline;
 mod zip_archive;
 
-pub(crate) use payload::{payload_root_relative_paths, remove_dir_with_retry};
-pub(crate) use trampoline::{
-    install_trampoline, is_trampolined, read_launch_mode_marker, uninstall_trampoline,
-    write_launch_mode_marker, LaunchMode, MARKER_FILE,
-};
 pub(crate) use zip_archive::read_bundled_bpp_version;
 
 use std::path::{Path, PathBuf};
@@ -28,7 +22,7 @@ pub async fn reset_bpp_data(
 ) -> Result<bool, String> {
     // Drop our own SQLite connections before touching the data directory.
     // Without this, OBS overlay polling keeps `bazaarplusplus.db` open and
-    // Windows refuses to delete it (the headline customer complaint).
+    // can block cleanup until the local stream service releases the handle.
     let _ = crate::stream::server::stop(stream_state.inner()).await;
 
     tauri::async_runtime::spawn_blocking(move || reset_bpp_data_blocking(Path::new(&game_path)))
@@ -58,8 +52,8 @@ fn reset_bpp_data_blocking(game_path: &Path) -> Result<bool, String> {
 }
 
 fn format_partial_failure(paths: &[PathBuf]) -> String {
-    // Use a delimiter that won't collide with Windows drive letters or POSIX
-    // separators. The frontend splits on `\u{1f}` to recover the list.
+    // Use a delimiter that won't collide with path separators. The frontend
+    // splits on `\u{1f}` to recover the list.
     let joined = paths
         .iter()
         .map(|path| path.display().to_string())
@@ -76,13 +70,6 @@ pub fn install_bepinex(
     let game_path = Path::new(&game_path);
     let preserved_bpp_config =
         payload::preserve_file_if_exists(game_path, payload::BPP_CONFIG_RELATIVE_PATH)?;
-    #[cfg(target_os = "macos")]
-    if !_steam_path.trim().is_empty() {
-        crate::services::steam::prepare_steam_for_launch_option_update(
-            Path::new(&_steam_path),
-            true,
-        )?;
-    }
     let install_backup = payload::prepare_install_target(game_path)?;
 
     let install_result = (|| -> Result<(), String> {
@@ -101,13 +88,6 @@ pub fn install_bepinex(
         debug_log!("Extracting BepInEx...");
         let _extracted = zip_archive::extract_zip(&zip_bytes, game_path)?;
         debug_log!("Extracted {} files.", _extracted.len());
-
-        #[cfg(target_os = "macos")]
-        {
-            let script_path = game_path.join("run_bepinex.sh");
-            crate::services::vdf::ensure_launcher_executable(&script_path)?;
-            debug_log!("Marked {} as executable.", script_path.display());
-        }
 
         Ok(())
     })();
@@ -145,43 +125,17 @@ pub fn uninstall_bpp(
     let game_path = Path::new(&game_path);
     payload::ensure_valid_game_path(game_path)?;
 
-    #[cfg(target_os = "macos")]
-    if !_steam_path.trim().is_empty() {
-        crate::services::steam::prepare_steam_for_launch_option_update(
-            Path::new(&_steam_path),
-            false,
-        )?;
-    }
-
     let keep_shared_bootstrap = payload::has_third_party_plugins(game_path);
 
-    // Restore the vanilla bundle only when BPP is the last installed plugin. If
-    // another mod remains, the trampoline / launch options are shared BepInEx
-    // bootstrap state and removing them would disable that mod.
+    // Remove shared bootstrap state only when BPP is the last installed plugin.
+    // If another mod remains, BepInEx and launch options stay in place.
     if !keep_shared_bootstrap {
-        // Call uninstall_trampoline UNCONDITIONALLY (not gated on is_trampolined):
-        // it self-classifies — a no-op when already vanilla, a restore when a
-        // `.orig` exists, and a hard error in the broken stub-without-backup state.
-        // If this fails, abort so we never strand a stubbed bundle whose `.orig`
-        // we then can't recover. No-op off macOS.
-        trampoline::uninstall_trampoline(game_path)?;
-    }
-
-    if keep_shared_bootstrap {
-        payload::uninstall_payload_preserving_shared_dependencies(game_path)?;
-    } else {
         payload::uninstall_payload(game_path)?;
-    }
-
-    if !keep_shared_bootstrap {
-        trampoline::remove_launch_mode_marker(game_path)?;
-
-        #[cfg(target_os = "macos")]
-        {
-            if !_steam_path.trim().is_empty() {
-                crate::services::vdf::clear_launch_options_for_steam(Path::new(&_steam_path))?;
-            }
+        if !_steam_path.trim().is_empty() {
+            crate::services::vdf::clear_launch_options_for_steam(Path::new(&_steam_path))?;
         }
+    } else {
+        payload::uninstall_payload_preserving_shared_dependencies(game_path)?;
     }
 
     debug_log!(
@@ -198,20 +152,7 @@ mod tests {
     fn make_valid_game_dir() -> tempfile::TempDir {
         let tmp = tempfile::tempdir().unwrap();
 
-        #[cfg(target_os = "macos")]
-        {
-            std::fs::create_dir_all(tmp.path().join("TheBazaar.app")).unwrap();
-        }
-
-        #[cfg(any(target_os = "windows", target_os = "linux"))]
-        {
-            std::fs::write(tmp.path().join("TheBazaar.exe"), b"exe").unwrap();
-        }
-
-        #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
-        {
-            std::fs::write(tmp.path().join("TheBazaar"), b"exe").unwrap();
-        }
+        std::fs::write(tmp.path().join("TheBazaar.exe"), b"exe").unwrap();
 
         tmp
     }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from "react";
 
 /**
  * Modal dialog backed by the native <dialog> element. showModal() gives us the
@@ -12,8 +12,8 @@ import { useEffect, useRef, type ReactNode } from 'react';
 export function Dialog({
   onClose,
   labelledBy,
-  className = '',
-  children
+  className = "",
+  children,
 }: {
   onClose: () => void;
   labelledBy?: string;

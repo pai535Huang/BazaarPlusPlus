@@ -8,16 +8,7 @@ pub(crate) fn is_bepinex_installed(game_path: &Path) -> bool {
         return false;
     }
 
-    #[cfg(target_os = "macos")]
-    return game_path.join("run_bepinex.sh").exists()
-        && game_path.join("libdoorstop.dylib").exists();
-
-    #[cfg(any(target_os = "windows", target_os = "linux"))]
-    return game_path.join("doorstop_config.ini").exists()
-        && game_path.join("winhttp.dll").exists();
-
-    #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
-    return true;
+    game_path.join("doorstop_config.ini").exists() && game_path.join("winhttp.dll").exists()
 }
 
 pub(super) fn read_installed_bpp_version(game_path: &Path) -> Option<String> {
@@ -28,14 +19,7 @@ pub(super) fn read_installed_bpp_version(game_path: &Path) -> Option<String> {
 }
 
 pub(crate) fn is_valid_game_path(base: &Path) -> bool {
-    #[cfg(target_os = "macos")]
-    return base.join("TheBazaar.app").exists();
-
-    #[cfg(any(target_os = "windows", target_os = "linux"))]
-    return base.join("TheBazaar.exe").exists();
-
-    #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
-    return base.join("TheBazaar").exists();
+    base.join("TheBazaar.exe").exists()
 }
 
 #[cfg(test)]
@@ -77,17 +61,8 @@ mod tests {
         )
         .unwrap();
 
-        #[cfg(target_os = "macos")]
-        {
-            std::fs::write(tmp.path().join("run_bepinex.sh"), b"#!/bin/sh\n").unwrap();
-            std::fs::write(tmp.path().join("libdoorstop.dylib"), b"dylib").unwrap();
-        }
-
-        #[cfg(any(target_os = "windows", target_os = "linux"))]
-        {
-            std::fs::write(tmp.path().join("doorstop_config.ini"), b"cfg").unwrap();
-            std::fs::write(tmp.path().join("winhttp.dll"), b"dll").unwrap();
-        }
+        std::fs::write(tmp.path().join("doorstop_config.ini"), b"cfg").unwrap();
+        std::fs::write(tmp.path().join("winhttp.dll"), b"dll").unwrap();
 
         assert!(is_bepinex_installed(tmp.path()));
     }
@@ -97,8 +72,14 @@ mod tests {
         use crate::services::path::normalize_requested_game_path;
         use std::path::PathBuf;
 
-        let game_path =
-            normalize_requested_game_path(Some("  C:\\Games\\The Bazaar  ".to_string()));
-        assert_eq!(game_path, Some(PathBuf::from("C:\\Games\\The Bazaar")));
+        let game_path = normalize_requested_game_path(Some(
+            "  /home/me/.local/share/Steam/steamapps/common/The Bazaar  ".to_string(),
+        ));
+        assert_eq!(
+            game_path,
+            Some(PathBuf::from(
+                "/home/me/.local/share/Steam/steamapps/common/The Bazaar"
+            ))
+        );
     }
 }

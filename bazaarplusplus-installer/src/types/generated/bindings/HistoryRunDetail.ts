@@ -2,4 +2,7 @@
 import type { HistoryBattleRow } from "./HistoryBattleRow";
 import type { HistoryRunDetailRow } from "./HistoryRunDetailRow";
 
-export type HistoryRunDetail = { run: HistoryRunDetailRow, battles: Array<HistoryBattleRow>, };
+export type HistoryRunDetail = {
+  run: HistoryRunDetailRow;
+  battles: Array<HistoryBattleRow>;
+};

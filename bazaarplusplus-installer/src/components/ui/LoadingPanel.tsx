@@ -1,8 +1,8 @@
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from "lucide-react";
 
 export function LoadingPanel({
   label,
-  className = 'h-48'
+  className = "h-48",
 }: {
   label: string;
   className?: string;

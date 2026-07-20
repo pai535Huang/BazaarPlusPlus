@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from 'react';
-import { toErrorMessage } from './errors';
+import { useCallback, useRef, useState } from "react";
+import { toErrorMessage } from "./errors";
 
 type AsyncActionOptions = {
   onStart?: () => void;
@@ -18,11 +18,11 @@ export type AsyncActionGate<TAction extends string> = {
 };
 
 export function createAsyncActionGate<
-  TAction extends string
+  TAction extends string,
 >(): AsyncActionGate<TAction> {
   return {
     current: null,
-    runId: 0
+    runId: 0,
   };
 }
 
@@ -31,7 +31,7 @@ export async function runSingleFlightAction<TAction extends string>(
   name: TAction,
   task: () => Promise<void>,
   lifecycle: AsyncActionLifecycle<TAction>,
-  options?: AsyncActionOptions
+  options?: AsyncActionOptions,
 ) {
   if (gate.current !== null) {
     return false;
@@ -48,7 +48,7 @@ export async function runSingleFlightAction<TAction extends string>(
   } catch (caught) {
     if (gate.runId === runId) {
       lifecycle.onError(
-        options?.errorMessage?.(caught) ?? toErrorMessage(caught)
+        options?.errorMessage?.(caught) ?? toErrorMessage(caught),
       );
     }
     return false;
@@ -69,7 +69,7 @@ export function useAsyncAction<TAction extends string = string>() {
     async (
       name: TAction,
       task: () => Promise<void>,
-      options?: AsyncActionOptions
+      options?: AsyncActionOptions,
     ) => {
       return runSingleFlightAction(
         gate.current,
@@ -82,12 +82,12 @@ export function useAsyncAction<TAction extends string = string>() {
             options?.onStart?.();
           },
           onError: setError,
-          onActionEnd: () => setAction(null)
+          onActionEnd: () => setAction(null),
         },
-        options
+        options,
       );
     },
-    []
+    [],
   );
 
   const clearError = useCallback(() => setError(null), []);
@@ -98,6 +98,6 @@ export function useAsyncAction<TAction extends string = string>() {
     setError,
     clearError,
     run,
-    busy: action !== null
+    busy: action !== null,
   };
 }

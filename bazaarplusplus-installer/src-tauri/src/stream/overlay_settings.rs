@@ -90,9 +90,9 @@ impl OverlaySettingsStore {
 
         let raw = match std::fs::read_to_string(&self.path) {
             Ok(raw) => raw,
-            Err(err) => {
+            Err(_err) => {
                 crate::services::debug_error!(
-                    "Failed to read overlay crop settings from {}: {err}",
+                    "Failed to read overlay crop settings from {}: {_err}",
                     self.path.display()
                 );
                 return Ok(OverlaySettings::default());
@@ -100,9 +100,9 @@ impl OverlaySettingsStore {
         };
         let document = match serde_json::from_str::<OverlayCropDocument>(&raw) {
             Ok(document) => document,
-            Err(err) => {
+            Err(_err) => {
                 crate::services::debug_error!(
-                    "Failed to parse overlay crop settings from {}: {err}",
+                    "Failed to parse overlay crop settings from {}: {_err}",
                     self.path.display()
                 );
                 return Ok(OverlaySettings::default());
@@ -118,9 +118,9 @@ impl OverlaySettingsStore {
 
         let crop = match validate_crop_settings(document.settings.crop) {
             Ok(crop) => crop,
-            Err(err) => {
+            Err(_err) => {
                 crate::services::debug_error!(
-                    "Invalid overlay crop settings in {}: {err}",
+                    "Invalid overlay crop settings in {}: {_err}",
                     self.path.display()
                 );
                 return Ok(OverlaySettings::default());

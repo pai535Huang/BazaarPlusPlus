@@ -6,42 +6,36 @@ Operating rules for AI agents working in this repository (`AGENTS.md` is a symli
 
 The mod targets `netstandard2.1` (C# 12). Game assemblies are resolved via `ManagedPath` — auto-detected from common Steam install paths, or pass explicitly:
 
-```powershell
-# Build the mod (Debug, auto-copies to BepInEx/plugins/ if game found)
-dotnet build src/BazaarPlusPlus/BazaarPlusPlus.csproj
+```bash
+# Build the mod
+./run.sh build
+
+# Build the installer Proton payload (main plugin plus BazaarAgent host)
+./run.sh build-payload --game-dir "$HOME/.local/share/Steam/steamapps/common/The Bazaar"
 
 # Build with explicit game assembly path
-dotnet build src/BazaarPlusPlus/BazaarPlusPlus.csproj -p:ManagedPath="D:\Steam\steamapps\common\The Bazaar\TheBazaar_Data\Managed"
-
-# Build both Debug + Release (Release copies to installer repo if present)
-dotnet build src/BazaarPlusPlus/BazaarPlusPlus.csproj -t:BuildAll
+dotnet build src/BazaarPlusPlus/BazaarPlusPlus.csproj \
+  -c Release \
+  -p:ManagedPath="$HOME/.local/share/Steam/steamapps/common/The Bazaar/TheBazaar_Data/Managed"
 
 # Run a single xUnit test project (has Microsoft.NET.Test.Sdk)
-dotnet test tests\Architecture.Tests\Architecture.Tests.csproj
+dotnet test tests/Architecture.Tests/Architecture.Tests.csproj
 
 # Run an exe-runner test project (no Microsoft.NET.Test.Sdk)
-dotnet run --project tests\ChoiceScreenPedestalResolver.Tests\ChoiceScreenPedestalResolver.Tests.csproj
+dotnet run --project tests/ChoiceScreenPedestalResolver.Tests/ChoiceScreenPedestalResolver.Tests.csproj
 
 # Format with the repo-pinned CSharpier version
 ./run.sh format
 ```
 
-`run.sh` works on macOS and Windows (Git Bash). Subcommands:
+`run.sh` works on Linux only. Subcommands:
 
-- `./run.sh build [--with-bazaaragent] [--fast]` — Debug build (`--fast` skips NuGet restore)
-- `./run.sh publish [--with-bazaaragent] [-p:Name=Value ...]` — production build: fetch remote embedded data, run seed gates, then `-t:BuildAll` (Debug + Release) with installer packaging
-- `./run.sh fetch-data [-p:Name=Value ...]` — refresh remote embedded data
-- `./run.sh restore-locks` — refresh committed NuGet lock files for the six published assemblies
-- `./run.sh restore-locked` — validate published-assembly restores in locked mode without updating lock files
-- `./run.sh test` — run all test projects under `tests/`
+- `./run.sh build [--fast]` — Release build (`--fast` skips NuGet restore)
+- `./run.sh build-payload [--game-dir PATH]` — production payload build: compile against the Proton game assemblies and copy artifacts into `bazaarplusplus-installer/src-tauri/resources/SourceForBuild/proton`
+- `./run.sh install [--game-dir PATH] [--skip-build] [--skip-ffmpeg]` — build/reuse the Proton payload and copy it into the Steam game directory
+- `./run.sh proton-log [--game-dir PATH] [--lines N]` — tail `<GameDir>/BepInEx/LogOutput.log`
 - `./run.sh format` — restore the repo-pinned CSharpier tool and format the source tree
 - `./run.sh format-check` — restore the repo-pinned CSharpier tool and fail on unformatted files
-- `./run.sh decompile [DllName]` — decompile a single game DLL (default: Assembly-CSharp)
-- `./run.sh decompile-all` — decompile all tracked game DLLs
-- `./run.sh decompile-ptr [DllName]` — decompile a single PTR game DLL into `decompiled-vptr/`
-- `./run.sh decompile-all-ptr` — decompile all tracked PTR game DLLs
-- `./run.sh snapshot-managed` — archive the installed Managed dir under `game-libs/`
-- `./run.sh build-matrix` — build the source tree against every archived Managed snapshot
 
 Test projects under `tests/` are split per-feature. Some use xUnit + `Microsoft.NET.Test.Sdk` (run via `dotnet test`), others are executable (run via `dotnet run --project`). Check whether the csproj has `Microsoft.NET.Test.Sdk` to determine which.
 
@@ -49,9 +43,9 @@ When changing a direct dependency, edit `Directory.Packages.props`, run `./run.s
 
 ## Logs & Debugging
 
-This mod is a **BepInEx 5.x plugin** (`BepInEx.Core` 5.\*). At runtime, BepInEx writes all console output to disk at `<GameDir>\BepInEx\LogOutput.log` — the sibling of the `BepInEx\plugins\` folder the build copies into. To debug, read that file; mod log lines are structured events shaped `[BPP][<Scope>] event=<id> field=value ...` (logged via `BppLog` → BepInEx `ManualLogSource`). `Debug`-level events only emit from Debug builds; `Info`/`Warning`/`Error` always emit.
+This mod is a **BepInEx 5.x plugin** (`BepInEx.Core` 5.\*). At runtime, BepInEx writes all console output to disk at `<GameDir>/BepInEx/LogOutput.log`, the sibling of the `BepInEx/plugins/` folder the build copies into. To debug, read that file; mod log lines are structured events shaped `[BPP][<Scope>] event=<id> field=value ...` (logged via `BppLog` -> BepInEx `ManualLogSource`). `Debug`-level events only emit from Debug builds; `Info`/`Warning`/`Error` always emit.
 
-For runtime validation that needs launching the game, always launch The Bazaar through Steam (App ID 1617400) so Steam runtime state is present. On macOS: `open "steam://run/1617400"`. On Windows: `start steam://run/1617400`. Do not launch `TheBazaar.app` directly or use `run_bepinex.sh` on macOS — these bypass Steam runtime and cause subtle failures.
+For runtime validation that needs launching the game, always launch The Bazaar through Steam (App ID 1617400) so Steam runtime state is present. On Linux, use the Steam UI or `xdg-open "steam://rungameid/1617400"` after setting the launch option to `WINEDLLOVERRIDES="winhttp=n,b" %command%`.
 
 ## Architecture
 
@@ -82,7 +76,7 @@ Structure lives in `docs/ARCHITECTURE.md`; durable knowledge in `docs/MEMORY.md`
 - Format every Git commit message as Conventional Commits: `<type>(<scope>): <description>`.
 - Keep commits scoped: when `./run.sh format`/csharpier reformats files outside your change.
 - A long-running automation task must self-heal — auto-relaunch the game process on crash/exit and continue until the goal is met, rather than stopping on the first failure
-- Never build mod file-write paths from `Application.dataPath` — on macOS its parent is the `.app` bundle root, and unsealed writes there break `codesign` re-signing and the trampoline repair (blocking `./run.sh build` after every game update). Anchor writes on `BepInEx.Paths.GameRootPath` / the `<GameRoot>/BazaarPlusPlusV4/` data dir, which BepInEx special-cases on macOS to the directory containing the `.app`
+- Never build mod file-write paths from `Application.dataPath`; anchor writes on `BepInEx.Paths.GameRootPath` / the `<GameRoot>/BazaarPlusPlusV4/` data dir so the Proton install layout remains stable.
 
 ## Agent skills
 

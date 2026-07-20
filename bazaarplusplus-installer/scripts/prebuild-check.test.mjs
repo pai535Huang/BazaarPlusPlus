@@ -1,111 +1,88 @@
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { test, expect } from 'vitest';
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { test, expect } from "vitest";
 
 import {
-  assertMacosLauncherScriptIsSafe,
-  assertMacosTrampolineStub,
-  macosTrampolineStubPath,
-  npmExecFileInvocation,
-  requiredEntriesForPlatform
-} from './prebuild-check.mjs';
+  assertBindingsUpToDate,
+  diffGeneratedFileSnapshots,
+  requiredEntriesForPlatform,
+  resolveTargetPlatforms,
+} from "./prebuild-check.mjs";
 
-test('macOS bundles BazaarPlusPlus SQLite dependencies', () => {
-  expect(requiredEntriesForPlatform('macos')).toEqual([
-    'run_bepinex.sh',
-    'libdoorstop.dylib',
-    'BepInEx/plugins/BazaarPlusPlus.dll',
-    'BepInEx/plugins/BazaarPlusPlus.version',
-    'BepInEx/plugins/Microsoft.Data.Sqlite.dll',
-    'BepInEx/plugins/SQLitePCLRaw.batteries_v2.dll',
-    'BepInEx/plugins/SQLitePCLRaw.core.dll',
-    'BepInEx/plugins/SQLitePCLRaw.provider.e_sqlite3.dll',
-    'BepInEx/plugins/SixLabors.ImageSharp.dll',
-    'BepInEx/plugins/System.Buffers.dll',
-    'BepInEx/plugins/System.Memory.dll',
-    'BepInEx/plugins/System.Numerics.Vectors.dll',
-    'BepInEx/plugins/System.Text.Encoding.CodePages.dll',
-    'BepInEx/plugins/libe_sqlite3.dylib'
+test("Linux bundles BazaarPlusPlus SQLite dependencies", () => {
+  expect(requiredEntriesForPlatform("linux")).toEqual([
+    "winhttp.dll",
+    "doorstop_config.ini",
+    "BepInEx/plugins/BazaarPlusPlus.dll",
+    "BepInEx/plugins/BazaarPlusPlus.version",
+    "BepInEx/plugins/BazaarPlusPlus.ModApi.dll",
+    "BepInEx/plugins/BazaarPlusPlus.Localization.dll",
+    "BepInEx/plugins/BazaarPlusPlus.Storage.dll",
+    "BepInEx/plugins/BazaarPlusPlus.BazaarAgent.dll",
+    "BepInEx/plugins/BazaarPlusPlus.BazaarAgentHost.dll",
+    "BepInEx/plugins/Microsoft.Data.Sqlite.dll",
+    "BepInEx/plugins/SQLitePCLRaw.batteries_v2.dll",
+    "BepInEx/plugins/SQLitePCLRaw.core.dll",
+    "BepInEx/plugins/SQLitePCLRaw.provider.e_sqlite3.dll",
+    "BepInEx/plugins/SixLabors.ImageSharp.dll",
+    "BepInEx/plugins/System.Buffers.dll",
+    "BepInEx/plugins/System.Memory.dll",
+    "BepInEx/plugins/System.Numerics.Vectors.dll",
+    "BepInEx/plugins/System.Text.Encoding.CodePages.dll",
+    "BepInEx/plugins/e_sqlite3.dll",
   ]);
 });
 
-test('Windows bundles BazaarPlusPlus SQLite dependencies', () => {
-  expect(requiredEntriesForPlatform('windows')).toEqual([
-    'winhttp.dll',
-    'doorstop_config.ini',
-    'BepInEx/plugins/BazaarPlusPlus.dll',
-    'BepInEx/plugins/BazaarPlusPlus.version',
-    'BepInEx/plugins/Microsoft.Data.Sqlite.dll',
-    'BepInEx/plugins/SQLitePCLRaw.batteries_v2.dll',
-    'BepInEx/plugins/SQLitePCLRaw.core.dll',
-    'BepInEx/plugins/SQLitePCLRaw.provider.e_sqlite3.dll',
-    'BepInEx/plugins/SixLabors.ImageSharp.dll',
-    'BepInEx/plugins/System.Buffers.dll',
-    'BepInEx/plugins/System.Memory.dll',
-    'BepInEx/plugins/System.Numerics.Vectors.dll',
-    'BepInEx/plugins/System.Text.Encoding.CodePages.dll',
-    'BepInEx/plugins/e_sqlite3.dll'
-  ]);
-});
-
-test('macOS launcher check accepts safe codesign tempfile handling', () => {
-  const script = [
-    '_entitlements_file="$(mktemp "${TMPDIR:-/tmp}/bepinex_ents.XXXXXX")"',
-    'trap cleanup_entitlements EXIT HUP INT TERM',
-    'codesign --force --deep --sign - --entitlements "$_entitlements_file" "$app_path"'
-  ].join('\n');
-
-  expect(() => assertMacosLauncherScriptIsSafe(script)).not.toThrow();
-});
-
-test('macOS launcher check rejects the broken BSD mktemp template', () => {
-  const script = [
-    '_entitlements_file="$(mktemp /tmp/bepinex_ents.XXXXXX.plist)"',
-    'trap cleanup_entitlements EXIT HUP INT TERM',
-    'codesign --force --deep --sign - --entitlements "$_entitlements_file" "$app_path"'
-  ].join('\n');
-
-  expect(() => assertMacosLauncherScriptIsSafe(script)).toThrow(
-    'mktemp /tmp/bepinex_ents.XXXXXX.plist'
+test("prebuild check only targets Linux", () => {
+  expect(resolveTargetPlatforms(undefined)).toEqual(["linux"]);
+  expect(resolveTargetPlatforms("linux")).toEqual(["linux"]);
+  expect(() => resolveTargetPlatforms("win32")).toThrow(
+    /Unsupported TAURI_ENV_PLATFORM value: win32/,
+  );
+  expect(() => resolveTargetPlatforms("darwin")).toThrow(
+    /Unsupported TAURI_ENV_PLATFORM value: darwin/,
   );
 });
 
-test('macOS launcher check rejects preemptive signature removal', () => {
-  const script = [
-    '_entitlements_file="$(mktemp "${TMPDIR:-/tmp}/bepinex_ents.XXXXXX")"',
-    'trap cleanup_entitlements EXIT HUP INT TERM',
-    'codesign --remove-signature "$app_path" 2>/dev/null || true',
-    'codesign --force --deep --sign - --entitlements "$_entitlements_file" "$app_path"'
-  ].join('\n');
+test("generated bindings check allows pre-existing dirty generated files", () => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "bpp-prebuild-"));
+  const generatedDir = path.join(rootDir, "src/types/generated");
+  fs.mkdirSync(generatedDir, { recursive: true });
+  fs.writeFileSync(path.join(generatedDir, "index.ts"), "dirty baseline");
 
-  expect(() => assertMacosLauncherScriptIsSafe(script)).toThrow(
-    'codesign --remove-signature'
-  );
+  try {
+    expect(() => assertBindingsUpToDate(rootDir, () => {})).not.toThrow();
+  } finally {
+    fs.rmSync(rootDir, { recursive: true, force: true });
+  }
 });
 
-test('prebuild check invokes npm through cmd on Windows', () => {
+test("generated bindings check reports files changed by generation", () => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "bpp-prebuild-"));
+  const generatedDir = path.join(rootDir, "src/types/generated");
+  fs.mkdirSync(generatedDir, { recursive: true });
+  fs.writeFileSync(path.join(generatedDir, "index.ts"), "old");
+
+  try {
+    expect(() =>
+      assertBindingsUpToDate(rootDir, () => {
+        fs.writeFileSync(path.join(generatedDir, "index.ts"), "new");
+        fs.writeFileSync(path.join(generatedDir, "NewType.ts"), "new type");
+      }),
+    ).toThrow(
+      /M src\/types\/generated\/index\.ts[\s\S]*\?\? src\/types\/generated\/NewType\.ts/,
+    );
+  } finally {
+    fs.rmSync(rootDir, { recursive: true, force: true });
+  }
+});
+
+test("generated snapshot diff reports deletions", () => {
   expect(
-    npmExecFileInvocation(['run', 'generate:bindings'], 'win32', {
-      ComSpec: 'C:\\Windows\\System32\\cmd.exe'
-    })
-  ).toEqual({
-    command: 'C:\\Windows\\System32\\cmd.exe',
-    args: ['/d', '/s', '/c', 'npm', 'run', 'generate:bindings']
-  });
-});
-
-test('trampoline stub check fails loudly when the compiled stub is missing', () => {
-  const root = mkdtempSync(path.join(tmpdir(), 'bpp-stub-'));
-  expect(() => assertMacosTrampolineStub(root)).toThrow(
-    'Missing compiled macOS trampoline stub'
-  );
-});
-
-test('trampoline stub check rejects a non-Mach-O stub', () => {
-  const root = mkdtempSync(path.join(tmpdir(), 'bpp-stub-'));
-  const stubPath = macosTrampolineStubPath(root);
-  mkdirSync(path.dirname(stubPath), { recursive: true });
-  writeFileSync(stubPath, 'not a mach-o binary');
-  expect(() => assertMacosTrampolineStub(root)).toThrow('not arm64 Mach-O');
+    diffGeneratedFileSnapshots(
+      [{ path: "src/types/generated/OldType.ts", hash: "before" }],
+      [],
+    ),
+  ).toEqual(["D src/types/generated/OldType.ts"]);
 });

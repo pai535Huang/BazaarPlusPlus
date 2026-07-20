@@ -1,15 +1,15 @@
-import { invokeCommand } from '../../api/tauri';
-import { hasTauriRuntime } from '../../api/runtime';
-import type { AppBootstrap } from '../../types/backend';
-import bootstrapResource from '../../../src-tauri/resources/app-bootstrap.json';
+import { invokeCommand } from "../../api/tauri";
+import { hasTauriRuntime } from "../../api/runtime";
+import type { AppBootstrap } from "../../types/backend";
+import bootstrapResource from "../../../src-tauri/resources/app-bootstrap.json";
 
 export const fallbackBootstrap: AppBootstrap = {
   ...(bootstrapResource as Pick<
     AppBootstrap,
-    'links' | 'credits' | 'licenses'
+    "links" | "credits" | "licenses"
   >),
   app_version: __FRONTEND_VERSION__,
-  bundled_bpp_version: null
+  bundled_bpp_version: null,
 };
 
 export async function loadAppBootstrap() {
@@ -17,5 +17,5 @@ export async function loadAppBootstrap() {
     return fallbackBootstrap;
   }
 
-  return invokeCommand('get_app_bootstrap');
+  return invokeCommand("get_app_bootstrap");
 }

@@ -196,55 +196,44 @@ fn show_main_window(app: &tauri::AppHandle) {
 }
 
 fn copy_text_to_clipboard(text: &str) -> Result<(), String> {
-    #[cfg(target_os = "macos")]
-    {
-        use std::io::Write;
-        use std::process::{Command, Stdio};
-
-        let mut child = Command::new("pbcopy")
-            .stdin(Stdio::piped())
-            .spawn()
-            .map_err(|err| format!("failed to launch pbcopy: {err}"))?;
-        let stdin = child
-            .stdin
-            .as_mut()
-            .ok_or_else(|| "pbcopy stdin unavailable".to_string())?;
-        stdin
-            .write_all(text.as_bytes())
-            .map_err(|err| format!("failed to write to pbcopy: {err}"))?;
-        child
-            .wait()
-            .map_err(|err| format!("failed to wait for pbcopy: {err}"))?;
-        return Ok(());
+    for (command, args) in [
+        ("wl-copy", &[][..]),
+        ("xclip", &["-selection", "clipboard"][..]),
+        ("xsel", &["--clipboard", "--input"][..]),
+    ] {
+        if copy_text_with_command(command, args, text).is_ok() {
+            return Ok(());
+        }
     }
 
-    #[cfg(target_os = "windows")]
-    {
-        use std::io::Write;
-        use std::process::{Command, Stdio};
+    Err("failed to copy text: install wl-copy, xclip, or xsel".to_string())
+}
 
-        let mut child = Command::new("cmd")
-            .args(["/C", "clip"])
-            .stdin(Stdio::piped())
-            .spawn()
-            .map_err(|err| format!("failed to launch clip: {err}"))?;
-        let stdin = child
-            .stdin
-            .as_mut()
-            .ok_or_else(|| "clip stdin unavailable".to_string())?;
-        stdin
-            .write_all(text.as_bytes())
-            .map_err(|err| format!("failed to write to clip: {err}"))?;
-        child
-            .wait()
-            .map_err(|err| format!("failed to wait for clip: {err}"))?;
-        return Ok(());
-    }
+fn copy_text_with_command(command: &str, args: &[&str], text: &str) -> Result<(), String> {
+    use std::io::Write;
+    use std::process::{Command, Stdio};
 
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-    {
-        let _ = text;
-        Err("clipboard copy is unsupported on this platform".to_string())
+    let mut child = Command::new(command)
+        .args(args)
+        .stdin(Stdio::piped())
+        .spawn()
+        .map_err(|err| format!("failed to launch {command}: {err}"))?;
+    let mut stdin = child
+        .stdin
+        .take()
+        .ok_or_else(|| format!("{command} stdin unavailable"))?;
+    stdin
+        .write_all(text.as_bytes())
+        .map_err(|err| format!("failed to write to {command}: {err}"))?;
+    drop(stdin);
+    let status = child
+        .wait()
+        .map_err(|err| format!("failed to wait for {command}: {err}"))?;
+
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("{command} exited with {status}"))
     }
 }
 

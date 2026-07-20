@@ -1,10 +1,10 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import GlobalShell from './layouts/GlobalShell';
-import About from './pages/About';
-import History from './pages/History';
-import Install from './pages/Install';
-import RunDetail from './pages/RunDetail';
-import Stream from './pages/Stream';
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import GlobalShell from "./layouts/GlobalShell";
+import About from "./pages/About";
+import History from "./pages/History";
+import Install from "./pages/Install";
+import RunDetail from "./pages/RunDetail";
+import Stream from "./pages/Stream";
 
 export default function App() {
   return (

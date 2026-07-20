@@ -1,6 +1,6 @@
-import type { StreamServiceStatus } from '../../types/backend';
+import type { StreamServiceStatus } from "../../types/backend";
 
-export type StreamOverlayState = 'error' | 'starting' | 'running' | 'idle';
+export type StreamOverlayState = "error" | "starting" | "running" | "idle";
 
 export interface StreamViewModelInput {
   status: StreamServiceStatus;
@@ -22,7 +22,7 @@ export interface StreamViewModel {
 }
 
 export function createStreamViewModel(
-  input: StreamViewModelInput
+  input: StreamViewModelInput,
 ): StreamViewModel {
   const message = input.error ?? input.status.last_error;
   const isBusy = input.loading || input.action !== null;
@@ -32,38 +32,38 @@ export function createStreamViewModel(
 
   if (message) {
     return {
-      state: 'error',
+      state: "error",
       message,
       obsUrl,
       settingsUrl,
       canOpenOverlay: false,
       canOpenSettings: false,
       canRestart: !isBusy,
-      isBusy
+      isBusy,
     };
   }
 
   if (input.loading) {
     return {
-      state: 'starting',
+      state: "starting",
       message: null,
       obsUrl,
       settingsUrl,
       canOpenOverlay: false,
       canOpenSettings: false,
       canRestart: false,
-      isBusy
+      isBusy,
     };
   }
 
   return {
-    state: running ? 'running' : 'idle',
+    state: running ? "running" : "idle",
     message: null,
     obsUrl,
     settingsUrl,
     canOpenOverlay: running && obsUrl !== null,
     canOpenSettings: running && settingsUrl !== null,
     canRestart: !isBusy,
-    isBusy
+    isBusy,
   };
 }

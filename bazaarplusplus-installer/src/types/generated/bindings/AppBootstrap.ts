@@ -3,4 +3,10 @@ import type { AppCredit } from "./AppCredit";
 import type { AppLicense } from "./AppLicense";
 import type { AppLinks } from "./AppLinks";
 
-export type AppBootstrap = { app_version: string, bundled_bpp_version: string | null, links: AppLinks, credits: Array<AppCredit>, licenses: Array<AppLicense>, };
+export type AppBootstrap = {
+  app_version: string;
+  bundled_bpp_version: string | null;
+  links: AppLinks;
+  credits: Array<AppCredit>;
+  licenses: Array<AppLicense>;
+};

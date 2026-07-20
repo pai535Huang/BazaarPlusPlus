@@ -1,8 +1,8 @@
-import { composeStripPreviewUrl } from '../../api/http';
+import { composeStripPreviewUrl } from "../../api/http";
 
 export function optionalStripPreviewUrl(
   baseUrl: string | null | undefined,
-  stripUrl: string | null | undefined
+  stripUrl: string | null | undefined,
 ): string | null {
   if (!baseUrl || !stripUrl) {
     return null;

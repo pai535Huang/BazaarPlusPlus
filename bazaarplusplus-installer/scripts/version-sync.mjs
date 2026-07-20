@@ -1,9 +1,9 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import process from 'node:process';
+import fs from "node:fs";
+import path from "node:path";
+import process from "node:process";
 
 function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
 function writeJson(filePath, value) {
@@ -11,11 +11,11 @@ function writeJson(filePath, value) {
 }
 
 function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function readText(filePath) {
-  return fs.readFileSync(filePath, 'utf8');
+  return fs.readFileSync(filePath, "utf8");
 }
 
 function writeText(filePath, value) {
@@ -31,19 +31,19 @@ function matchRequired(text, pattern, description) {
 }
 
 function readPackageVersion(rootDir) {
-  return readJson(path.join(rootDir, 'package.json')).version;
+  return readJson(path.join(rootDir, "package.json")).version;
 }
 
 function tauriConfigPath(rootDir) {
-  return path.join(rootDir, 'src-tauri', 'tauri.conf.json');
+  return path.join(rootDir, "src-tauri", "tauri.conf.json");
 }
 
 function cargoTomlPath(rootDir) {
-  return path.join(rootDir, 'src-tauri', 'Cargo.toml');
+  return path.join(rootDir, "src-tauri", "Cargo.toml");
 }
 
 function cargoLockPath(rootDir) {
-  return path.join(rootDir, 'src-tauri', 'Cargo.lock');
+  return path.join(rootDir, "src-tauri", "Cargo.lock");
 }
 
 function readTauriVersion(rootDir) {
@@ -55,7 +55,7 @@ function readCargoPackageName(rootDir) {
   return matchRequired(
     cargoToml,
     /^\[package\][\s\S]*?^name = "([^"]+)"$/m,
-    'Cargo package name'
+    "Cargo package name",
   )[1];
 }
 
@@ -64,7 +64,7 @@ function readCargoVersion(rootDir) {
   return matchRequired(
     cargoToml,
     /^\[package\][\s\S]*?^version = "([^"]+)"$/m,
-    'Cargo package version'
+    "Cargo package version",
   )[1];
 }
 
@@ -77,7 +77,7 @@ function readCargoLockVersion(rootDir, packageName) {
   const cargoLock = readText(cargoLockFile);
   const pattern = new RegExp(
     String.raw`\[\[package\]\]\r?\nname = "${escapeRegExp(packageName)}"\r?\nversion = "([^"]+)"`,
-    'm'
+    "m",
   );
   const match = cargoLock.match(pattern);
   if (!match) {
@@ -107,7 +107,7 @@ function updateCargoVersion(rootDir, version) {
     cargoToml,
     /^(\[package\][\s\S]*?^version = ")([^"]+)(")$/m,
     `$1${version}$3`,
-    'Cargo.toml package version'
+    "Cargo.toml package version",
   );
   writeText(filePath, updatedCargoToml);
 }
@@ -121,13 +121,13 @@ function updateCargoLockVersion(rootDir, packageName, version) {
   const cargoLock = readText(filePath);
   const pattern = new RegExp(
     String.raw`(\[\[package\]\]\r?\nname = "${escapeRegExp(packageName)}"\r?\nversion = ")([^"]+)(")`,
-    'm'
+    "m",
   );
   const updatedCargoLock = replaceRequired(
     cargoLock,
     pattern,
     `$1${version}$3`,
-    'Cargo.lock root package version'
+    "Cargo.lock root package version",
   );
   writeText(filePath, updatedCargoLock);
 }
@@ -140,16 +140,16 @@ export function collectVersionSnapshot(rootDir) {
     packageVersion,
     tauriVersion: readTauriVersion(rootDir),
     cargoVersion: readCargoVersion(rootDir),
-    cargoLockVersion: readCargoLockVersion(rootDir, packageName)
+    cargoLockVersion: readCargoLockVersion(rootDir, packageName),
   };
 }
 
 export function assertVersionsAreAligned(snapshot) {
   const mismatches = Object.entries(snapshot).filter(
     ([key, value]) =>
-      key !== 'packageVersion' &&
+      key !== "packageVersion" &&
       value !== null &&
-      value !== snapshot.packageVersion
+      value !== snapshot.packageVersion,
   );
 
   if (mismatches.length === 0) {
@@ -158,9 +158,9 @@ export function assertVersionsAreAligned(snapshot) {
 
   const details = mismatches
     .map(([key, value]) => `${key}=${value}`)
-    .join(', ');
+    .join(", ");
   throw new Error(
-    `Version mismatch: packageVersion=${snapshot.packageVersion}, ${details}`
+    `Version mismatch: packageVersion=${snapshot.packageVersion}, ${details}`,
   );
 }
 

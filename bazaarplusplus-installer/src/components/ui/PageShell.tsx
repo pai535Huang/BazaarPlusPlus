@@ -1,11 +1,11 @@
-import type { ReactNode } from 'react';
-import { PageHeader } from './PageHeader';
+import type { ReactNode } from "react";
+import { PageHeader } from "./PageHeader";
 
 export function PageShell({
   eyebrow,
   title,
   action,
-  children
+  children,
 }: {
   eyebrow: string;
   title: string;

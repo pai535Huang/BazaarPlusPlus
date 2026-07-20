@@ -1,22 +1,17 @@
-import { Outlet } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { Outlet } from "react-router-dom";
+import { useEffect, useState } from "react";
 import {
   AppBootstrapProvider,
-  useAppBootstrap
-} from '../features/about/AppBootstrapProvider';
-import { UpdaterProvider, useUpdater } from '../features/about/UpdaterProvider';
-import { isUpdateModalPhase } from '../features/about/updater';
-import { ShellHeader } from './ShellHeader';
-import { ShellNavRail } from './ShellNavRail';
-import { ShellPaymentModal } from './ShellPaymentModal';
-import { ShellUpdateModal } from './ShellUpdateModal';
+  useAppBootstrap,
+} from "../features/about/AppBootstrapProvider";
+import { ShellHeader } from "./ShellHeader";
+import { ShellNavRail } from "./ShellNavRail";
+import { ShellPaymentModal } from "./ShellPaymentModal";
 
 export default function GlobalShell() {
   return (
     <AppBootstrapProvider>
-      <UpdaterProvider>
-        <GlobalShellContent />
-      </UpdaterProvider>
+      <GlobalShellContent />
     </AppBootstrapProvider>
   );
 }
@@ -26,7 +21,6 @@ function GlobalShellContent() {
   const [showSupport, setShowSupport] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const app = useAppBootstrap();
-  const updater = useUpdater();
 
   // Close the header popovers on Escape or a click outside them — the native
   // behaviour these controlled dropdowns were missing.
@@ -37,17 +31,17 @@ function GlobalShellContent() {
       setShowSupport(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeMenus();
+      if (event.key === "Escape") closeMenus();
     };
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as HTMLElement | null;
-      if (!target?.closest('[data-dropdown]')) closeMenus();
+      if (!target?.closest("[data-dropdown]")) closeMenus();
     };
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("pointerdown", onPointerDown);
     return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("pointerdown", onPointerDown);
     };
   }, [showBilibili, showSupport]);
 
@@ -80,7 +74,7 @@ function GlobalShellContent() {
             className="absolute inset-0 pointer-events-none opacity-5"
             style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23g)'/%3E%3C/svg%3E")`,
-              backgroundRepeat: 'repeat'
+              backgroundRepeat: "repeat",
             }}
           />
           <div className="p-8 h-full w-full relative z-10">
@@ -92,7 +86,6 @@ function GlobalShellContent() {
       {showPaymentModal && (
         <ShellPaymentModal onClose={() => setShowPaymentModal(false)} />
       )}
-      {isUpdateModalPhase(updater) && <ShellUpdateModal updater={updater} />}
     </div>
   );
 }

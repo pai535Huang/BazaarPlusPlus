@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import type { AppBootstrap } from '../../types/backend';
-import { fallbackBootstrap, loadAppBootstrap } from './aboutApi';
+import { useEffect, useState } from "react";
+import type { AppBootstrap } from "../../types/backend";
+import { fallbackBootstrap, loadAppBootstrap } from "./aboutApi";
 
 export function useAppBootstrapState() {
   const [bootstrap, setBootstrap] = useState<AppBootstrap>(fallbackBootstrap);
@@ -13,8 +13,8 @@ export function useAppBootstrapState() {
       })
       .catch((error) => {
         console.error(
-          'Failed to load app bootstrap from Tauri runtime.',
-          error
+          "Failed to load app bootstrap from Tauri runtime.",
+          error,
         );
         if (mounted) setBootstrap(fallbackBootstrap);
       });

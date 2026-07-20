@@ -157,7 +157,12 @@ fn malformed_launch_option_fragment_count(lines: &[String], start: usize) -> usi
             break;
         };
 
-        if consumed == 0 && !key.contains('/') && !value.contains("%command%") {
+        if consumed == 0
+            && !key.contains('/')
+            && !key.contains("WINEDLLOVERRIDES")
+            && !value.contains("%command%")
+            && !value.contains("WINEDLLOVERRIDES")
+        {
             break;
         }
 
@@ -208,7 +213,7 @@ fn cleanup_malformed_bpp_launch_options(lines: &mut Vec<String>) {
         }
 
         let fragment_text = collect_fragment_text(lines, idx + 1, fragment_count);
-        if !fragment_text.contains("run_bepinex.sh") {
+        if !fragment_text.contains("WINEDLLOVERRIDES") {
             idx += 1;
             continue;
         }

@@ -1,7 +1,7 @@
-import { AlertTriangle, Database, Loader2, ShieldCheck, X } from 'lucide-react';
-import type { useInstallPage } from './useInstallPage';
-import { Dialog } from '../../components/ui/Dialog';
-import { useI18n } from '../../i18n/LocaleProvider';
+import { AlertTriangle, Database, Loader2, ShieldCheck, X } from "lucide-react";
+import type { useInstallPage } from "./useInstallPage";
+import { Dialog } from "../../components/ui/Dialog";
+import { useI18n } from "../../i18n/LocaleProvider";
 
 type InstallPage = ReturnType<typeof useInstallPage>;
 
@@ -10,7 +10,7 @@ export function ResetDataConfirmModal({
   acknowledged,
   onAcknowledgedChange,
   onClose,
-  onConfirm
+  onConfirm,
 }: {
   page: InstallPage;
   acknowledged: boolean;
@@ -30,14 +30,14 @@ export function ResetDataConfirmModal({
               id="reset-data-modal-title"
               className="cinzel text-[1.1rem] text-[#f0d8d8] m-0 tracking-wider"
             >
-              {t('resetDataConfirmTitle')}
+              {t("resetDataConfirmTitle")}
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="text-[rgba(232,190,190,0.72)] hover:text-[#f0d8d8] transition-colors"
-            aria-label={t('close')}
+            aria-label={t("close")}
           >
             <X size={20} />
           </button>
@@ -50,7 +50,7 @@ export function ResetDataConfirmModal({
               className="mt-0.5 shrink-0 text-[rgba(232,120,120,0.9)]"
             />
             <p className="m-0 text-[13px] leading-relaxed">
-              {t('resetDataConfirmBody')}
+              {t("resetDataConfirmBody")}
             </p>
           </div>
 
@@ -60,8 +60,8 @@ export function ResetDataConfirmModal({
               className="mt-0.5 shrink-0 text-[rgba(232,190,120,0.9)]"
             />
             <div className="flex flex-col gap-2 text-[13px] leading-relaxed">
-              <p className="m-0">{t('resetDataConfirmKeepsInstall')}</p>
-              <p className="m-0">{t('resetDataConfirmGameClosed')}</p>
+              <p className="m-0">{t("resetDataConfirmKeepsInstall")}</p>
+              <p className="m-0">{t("resetDataConfirmGameClosed")}</p>
             </div>
           </div>
 
@@ -73,7 +73,7 @@ export function ResetDataConfirmModal({
               onChange={(event) => onAcknowledgedChange(event.target.checked)}
             />
             <span className="text-[13px] leading-relaxed text-[rgba(245,220,220,0.82)]">
-              {t('resetDataConfirmAcknowledge')}
+              {t("resetDataConfirmAcknowledge")}
             </span>
           </label>
 
@@ -83,21 +83,21 @@ export function ResetDataConfirmModal({
               onClick={onClose}
               className="px-5 py-2 bg-[rgba(200,148,55,0.04)] border border-[rgba(180,130,48,0.2)] rounded-sm hover:bg-[rgba(200,148,55,0.1)] transition-colors text-sm text-[#e8dcc8]"
             >
-              {t('cancel')}
+              {t("cancel")}
             </button>
             <button
               type="button"
-              disabled={!acknowledged || page.action === 'resetData'}
+              disabled={!acknowledged || page.action === "resetData"}
               onClick={onConfirm}
               className="px-5 py-2 rounded-sm text-sm cinzel font-bold tracking-wider transition-all bg-gradient-to-b from-[#d85d5d] to-[#9a2a2a] text-[#fff1f1] shadow-[0_0_15px_rgba(160,50,50,0.35)] hover:brightness-110 active:brightness-95 disabled:opacity-45 disabled:hover:brightness-100"
             >
-              {page.action === 'resetData' ? (
+              {page.action === "resetData" ? (
                 <span className="inline-flex items-center gap-2">
                   <Loader2 size={14} className="animate-spin" />
-                  {t('resetDataConfirmAction')}
+                  {t("resetDataConfirmAction")}
                 </span>
               ) : (
-                t('resetDataConfirmAction')
+                t("resetDataConfirmAction")
               )}
             </button>
           </div>

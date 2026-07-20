@@ -5,9 +5,6 @@ use keyvalues_parser::{Parser, Value};
 use super::launch_options::*;
 use super::parse::*;
 
-#[cfg(target_os = "macos")]
-use std::os::unix::fs::PermissionsExt;
-
 fn fixture_vdf() -> &'static str {
     r#"
 "UserLocalConfigStore"
@@ -93,11 +90,10 @@ fn test_inject_skips_missing_app_id() {
 
 #[test]
 fn test_inject_launch_options_escapes_quoted_args() {
-    let args = "\"/Applications/The Bazaar/run_bepinex.sh\" %command%";
+    let args = "WINEDLLOVERRIDES=\"winhttp=n,b\" %command%";
     let rendered = inject_launch_options(fixture_vdf(), args).unwrap().unwrap();
-    assert!(rendered.contains(
-        "\"LaunchOptions\"\t\t\"\\\"/Applications/The Bazaar/run_bepinex.sh\\\" %command%\""
-    ));
+    assert!(rendered
+        .contains("\"LaunchOptions\"\t\t\"WINEDLLOVERRIDES=\\\"winhttp=n,b\\\" %command%\""));
     assert!(!rendered.contains("\"LaunchOptions\"\t\t\"\"\n"));
     let parsed = Parser::new().parse(&rendered).unwrap();
     let root = parsed.value.get_obj().unwrap();
@@ -109,24 +105,23 @@ fn test_inject_launch_options_escapes_quoted_args() {
         .unwrap();
 
     assert_eq!(launch_options, args);
-    assert!(rendered.contains("\\\"/Applications/The Bazaar/run_bepinex.sh\\\" %command%"));
+    assert!(rendered.contains("WINEDLLOVERRIDES=\\\"winhttp=n,b\\\" %command%"));
 }
 
 #[test]
 fn test_inject_launch_options_removes_malformed_stray_fragments() {
-    let args = "\"/Applications/The Bazaar/run_bepinex.sh\" %command%";
+    let args = "WINEDLLOVERRIDES=\"winhttp=n,b\" %command%";
     let broken = format!(
-            "{fixture}\n\t\"LaunchOptions\"\t\t\"\"\n\t\"/Applications/The\"\t\t\"Bazaar/run_bepinex.sh\"\n\t\"%command%\"\t\t\"\"\n",
+            "{fixture}\n\t\"LaunchOptions\"\t\t\"\"\n\t\"WINEDLLOVERRIDES=\\\"winhttp=n,b\\\"\"\t\t\"\"\n\t\"%command%\"\t\t\"\"\n",
             fixture = fixture_vdf()
         );
 
     let rendered = inject_launch_options(&broken, args).unwrap().unwrap();
 
-    assert!(!rendered.contains("\"/Applications/The\""));
+    assert!(!rendered.contains("\"WINEDLLOVERRIDES=\\\"winhttp=n,b\\\"\"\t\t\"\""));
     assert!(!rendered.contains("\"%command%\"\t\t\"\""));
-    assert!(rendered.contains(
-        "\"LaunchOptions\"\t\t\"\\\"/Applications/The Bazaar/run_bepinex.sh\\\" %command%\""
-    ));
+    assert!(rendered
+        .contains("\"LaunchOptions\"\t\t\"WINEDLLOVERRIDES=\\\"winhttp=n,b\\\" %command%\""));
 }
 
 #[test]
@@ -209,38 +204,6 @@ fn test_clear_launch_options_for_steam_ignores_missing_steam_directory() {
     assert!(result.is_ok());
 }
 
-#[cfg(target_os = "macos")]
-#[test]
-fn test_launch_options_args_uses_run_script_with_quoted_game_path() {
-    let args = launch_options_args(Path::new("/Applications/The Bazaar"));
-    assert_eq!(
-        args,
-        "\"/Applications/The Bazaar/run_bepinex.sh\" %command%"
-    );
-}
-
-#[cfg(target_os = "macos")]
-#[test]
-fn test_ensure_launcher_executable_sets_execute_bits() {
-    let tmp = tempfile::tempdir().unwrap();
-    let script = tmp.path().join("run_bepinex.sh");
-    std::fs::write(&script, "#!/bin/sh\n").unwrap();
-    std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o644)).unwrap();
-
-    ensure_launcher_executable(&script).unwrap();
-
-    let mode = std::fs::metadata(&script).unwrap().permissions().mode();
-    assert_eq!(mode & 0o111, 0o111);
-}
-
-#[cfg(target_os = "windows")]
-#[test]
-fn test_launch_options_args_is_empty_on_windows() {
-    let args = launch_options_args(Path::new("C:\\Games\\The Bazaar"));
-    assert!(args.is_empty());
-}
-
-#[cfg(target_os = "linux")]
 #[test]
 fn test_launch_options_args_uses_winhttp_override_on_linux() {
     let args = launch_options_args(Path::new(

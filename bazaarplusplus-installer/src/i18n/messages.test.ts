@@ -1,30 +1,30 @@
-import { describe, expect, it } from 'vitest';
-import { formatMessage, messages } from './messages';
+import { describe, expect, it } from "vitest";
+import { formatMessage, messages } from "./messages";
 
-describe('messages catalog', () => {
-  it('defines the same keys for every locale', () => {
+describe("messages catalog", () => {
+  it("defines the same keys for every locale", () => {
     const zhKeys = Object.keys(messages.zh).sort();
     const enKeys = Object.keys(messages.en).sort();
     expect(enKeys).toEqual(zhKeys);
   });
 
-  it('returns a different string per locale for the same key', () => {
-    expect(formatMessage('zh', 'navInstall')).toBe('安装');
-    expect(formatMessage('en', 'navInstall')).toBe('Install');
+  it("returns a different string per locale for the same key", () => {
+    expect(formatMessage("zh", "navInstall")).toBe("安装");
+    expect(formatMessage("en", "navInstall")).toBe("Install");
   });
 });
 
-describe('formatMessage', () => {
-  it('returns the raw message when no params are given', () => {
-    expect(formatMessage('en', 'updateInstall')).toBe('Download & Install');
+describe("formatMessage", () => {
+  it("returns the raw message when no params are given", () => {
+    expect(formatMessage("en", "confirmInstall")).toBe("Confirm Install");
   });
 
-  it('interpolates named placeholders', () => {
-    expect(formatMessage('en', 'updateModalBody', { version: '4.1.0' })).toBe(
-      'BazaarPlusPlus 4.1.0 is available.'
+  it("interpolates named placeholders", () => {
+    expect(formatMessage("en", "resetDataPartialFailure", { count: 3 })).toBe(
+      "3 local data item(s) could not be deleted. Close the game and stream sources, then try again.",
     );
-    expect(formatMessage('zh', 'streamWindowOffset', { count: 3 })).toBe(
-      '向前补 3 条记录'
+    expect(formatMessage("zh", "streamWindowOffset", { count: 3 })).toBe(
+      "向前补 3 条记录",
     );
   });
 });

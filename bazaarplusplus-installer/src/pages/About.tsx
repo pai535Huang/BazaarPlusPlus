@@ -1,7 +1,7 @@
-import { ExternalLink } from 'lucide-react';
-import { PageHeader } from '../components/ui/PageHeader';
-import { useAppBootstrap } from '../features/about/AppBootstrapProvider';
-import { useI18n } from '../i18n/LocaleProvider';
+import { ExternalLink } from "lucide-react";
+import { PageHeader } from "../components/ui/PageHeader";
+import { useAppBootstrap } from "../features/about/AppBootstrapProvider";
+import { useI18n } from "../i18n/LocaleProvider";
 
 export default function About() {
   const { bootstrap } = useAppBootstrap();
@@ -9,7 +9,7 @@ export default function About() {
 
   return (
     <div className="flex flex-col gap-6 w-full h-full pb-12 max-w-5xl mx-auto">
-      <PageHeader eyebrow="About" title={t('aboutTitle')} />
+      <PageHeader eyebrow="About" title={t("aboutTitle")} />
 
       <div className="flex flex-col gap-6 flex-1 min-h-0 w-full">
         <section className="p-5 bg-[rgba(18,11,5,0.88)] border border-[rgba(180,130,48,0.13)] rounded-sm shadow-[0_6px_28px_rgba(0,0,0,0.35)] flex flex-col gap-4">
@@ -20,17 +20,17 @@ export default function About() {
               </h3>
               <div className="flex items-center gap-3 selectable">
                 <span className="cinzel text-[10px] tracking-widest text-[rgba(200,170,120,0.8)] uppercase">
-                  {t('aboutAppLabel')}
+                  {t("aboutAppLabel")}
                 </span>
                 <span className="px-2 py-0.5 bg-[rgba(80,180,120,0.15)] text-[#6dd9a0] border border-[rgba(80,180,120,0.25)] rounded-sm text-[10px] fira-code">
                   v{bootstrap.app_version}
                 </span>
                 <div className="w-px h-3 bg-gradient-to-b from-transparent via-[rgba(200,170,120,0.45)] to-transparent" />
                 <span className="cinzel text-[10px] tracking-widest text-[rgba(200,170,120,0.8)] uppercase">
-                  {t('aboutBppLabel')}
+                  {t("aboutBppLabel")}
                 </span>
                 <span className="text-[10px] text-[rgba(200,170,120,0.8)] fira-code">
-                  {bootstrap.bundled_bpp_version ?? '-'}
+                  {bootstrap.bundled_bpp_version ?? "-"}
                 </span>
               </div>
             </div>
@@ -49,7 +49,7 @@ export default function About() {
 
           <div className="flex flex-col gap-3">
             <h4 className="cinzel text-[10px] tracking-widest text-[rgba(200,148,55,0.75)] uppercase m-0">
-              {t('aboutCredits')}
+              {t("aboutCredits")}
             </h4>
             <ul className="flex flex-col gap-1 m-0 p-0 list-none">
               {bootstrap.credits.map((credit) => (
@@ -65,7 +65,7 @@ export default function About() {
 
         <section className="p-5 bg-[rgba(18,11,5,0.88)] border border-[rgba(180,130,48,0.13)] rounded-sm shadow-[0_6px_28px_rgba(0,0,0,0.35)] flex flex-col gap-4">
           <h3 className="cinzel text-xs tracking-widest text-[rgba(220,195,145,0.8)] uppercase m-0">
-            {t('aboutLicenses')}
+            {t("aboutLicenses")}
           </h3>
           <ul className="flex flex-col gap-1 m-0 p-0 list-none">
             {bootstrap.licenses.map((license) => (
@@ -86,7 +86,7 @@ export default function About() {
 function ListItem({
   name,
   role,
-  isLicense = false
+  isLicense = false,
 }: {
   name: string;
   role?: string;
@@ -99,7 +99,7 @@ function ListItem({
       </span>
       {role && (
         <span
-          className={`${isLicense ? 'fira-code text-[10px]' : 'cinzel text-[10px] tracking-widest uppercase'} text-[rgba(200,170,120,0.8)]`}
+          className={`${isLicense ? "fira-code text-[10px]" : "cinzel text-[10px] tracking-widest uppercase"} text-[rgba(200,170,120,0.8)]`}
         >
           {role}
         </span>

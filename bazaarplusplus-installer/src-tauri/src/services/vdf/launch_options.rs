@@ -19,48 +19,8 @@ struct LocalconfigUpdate {
     new_content: String,
 }
 
-#[cfg(target_os = "macos")]
-pub(crate) fn launch_options_args(game_path: &Path) -> String {
-    format!(
-        "\"{}\" %command%",
-        game_path.join("run_bepinex.sh").display()
-    )
-}
-
-#[cfg(target_os = "windows")]
-pub(crate) fn launch_options_args(_game_path: &Path) -> String {
-    String::new()
-}
-
-#[cfg(target_os = "linux")]
 pub(crate) fn launch_options_args(_game_path: &Path) -> String {
     r#"WINEDLLOVERRIDES="winhttp=n,b" %command%"#.to_string()
-}
-
-#[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
-pub(crate) fn launch_options_args(_game_path: &Path) -> String {
-    String::new()
-}
-
-#[cfg(target_os = "macos")]
-pub(crate) fn ensure_launcher_executable(script_path: &Path) -> Result<(), String> {
-    use std::os::unix::fs::PermissionsExt;
-
-    let metadata = std::fs::metadata(script_path)
-        .map_err(|err| format!("Cannot access {}: {err}", script_path.display()))?;
-    let mut permissions = metadata.permissions();
-    permissions.set_mode(permissions.mode() | 0o111);
-    std::fs::set_permissions(script_path, permissions).map_err(|err| {
-        format!(
-            "Cannot set executable permission on {}: {err}",
-            script_path.display()
-        )
-    })
-}
-
-#[cfg(not(target_os = "macos"))]
-fn ensure_launcher_executable(_script_path: &Path) -> Result<(), String> {
-    Ok(())
 }
 
 pub fn find_localconfig_paths(steam_path: &Path) -> Vec<PathBuf> {
@@ -238,8 +198,6 @@ pub fn patch_launch_options(
         );
         return Ok(LaunchOptionsPatchResult { verified: true });
     }
-
-    crate::services::steam::prepare_steam_for_launch_option_update(steam_path, true)?;
 
     debug_log!("Locating localconfig.vdf files...");
     let updated = patch_localconfigs(steam_path, &args).map_err(|err| {

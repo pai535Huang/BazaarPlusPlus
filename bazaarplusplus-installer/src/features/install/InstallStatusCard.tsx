@@ -1,15 +1,15 @@
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 export function InstallStatusCard({
   title,
   detail,
   label,
-  tone
+  tone,
 }: {
   title: string;
   detail: string;
   label: string;
-  tone: 'ok' | 'warn';
+  tone: "ok" | "warn";
 }) {
   return (
     <div className="min-w-0 p-4 bg-[rgba(18,11,5,0.88)] border border-[rgba(180,130,48,0.13)] rounded-sm shadow-[0_6px_28px_rgba(0,0,0,0.35)] flex items-center justify-between gap-4">
@@ -23,9 +23,9 @@ export function InstallStatusCard({
         </p>
       </div>
       <div
-        className={`flex items-center gap-2 px-3 py-1 rounded-sm border text-xs shrink-0 ${tone === 'ok' ? 'text-[#6dd9a0] bg-[rgba(80,180,120,0.15)] border-[rgba(80,180,120,0.25)]' : 'text-[rgba(232,190,120,0.9)] bg-[rgba(200,148,55,0.12)] border-[rgba(200,148,55,0.24)]'}`}
+        className={`flex items-center gap-2 px-3 py-1 rounded-sm border text-xs shrink-0 ${tone === "ok" ? "text-[#6dd9a0] bg-[rgba(80,180,120,0.15)] border-[rgba(80,180,120,0.25)]" : "text-[rgba(232,190,120,0.9)] bg-[rgba(200,148,55,0.12)] border-[rgba(200,148,55,0.24)]"}`}
       >
-        {tone === 'ok' ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
+        {tone === "ok" ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
         <span>{label}</span>
       </div>
     </div>

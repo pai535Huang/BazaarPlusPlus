@@ -1,6 +1,6 @@
 export function InstallFactItem({
   label,
-  value
+  value,
 }: {
   label: string;
   value: string;

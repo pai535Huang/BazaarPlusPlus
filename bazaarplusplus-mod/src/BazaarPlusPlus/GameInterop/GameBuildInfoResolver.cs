@@ -26,7 +26,7 @@ internal sealed class GameBuildInfo : IGameBuildInfo
 internal static class GameBuildInfoResolver
 {
     // Primary signal: the PTR build's bundleVersion embeds a "-ptr" token
-    // (e.g. "1.0.11358-ptr-macos-arm64-947c079a"); the production build does not.
+    // (e.g. "1.0.11358-ptr-build-947c079a"); the production build does not.
     // Corroborating probe: only the PTR fork of TheBazaar.Config declares the nested
     // ServerOption class (it holds the PTR server URLs). On disagreement the build is
     // treated as Ptr: misclassifying PTR as Online silently pollutes the production

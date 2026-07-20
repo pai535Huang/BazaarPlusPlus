@@ -6,8 +6,7 @@
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:14207",
-    "beforeBuildCommand": "npm run prebuild-check && npm run build",
-    "beforeBundleCommand": "node scripts/before-bundle-cleanup.mjs",
+    "beforeBuildCommand": "env TAURI_ENV_PLATFORM=linux npm run prebuild-check && npm run build",
     "frontendDist": "../build"
   },
   "app": {
@@ -25,15 +24,7 @@
     }
   },
   "bundle": {
-    "active": true,
-    "createUpdaterArtifacts": true
+    "active": false
   },
-  "plugins": {
-    "updater": {
-      "endpoints": [
-        "https://bppinstaller.bazaarplusplus.com/latest.json"
-      ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEY1RTAyMzg1RUFEQUNFRUYKUldUdnp0cnFoU1BnOVEzYjFlMFZMcEpmQ014VUZkNWtoRGtybW9pU0UwVjhIUmJmRjdoSmFSTVoK"
-    }
-  }
+  "plugins": {}
 }

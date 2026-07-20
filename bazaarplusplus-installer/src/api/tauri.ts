@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from "@tauri-apps/api/core";
 import type {
   AppBootstrap,
   AppLocalePayload,
@@ -10,9 +10,9 @@ import type {
   ResetBppDataResult,
   StreamOverlayCropSettingsPayload,
   StreamOverlayDisplayMode,
-  StreamServiceStatus
-} from '../types/backend';
-import type { TauriCommandName } from '../types/generated/tauri-command-names';
+  StreamServiceStatus,
+} from "../types/backend";
+import type { TauriCommandName } from "../types/generated/tauri-command-names";
 
 export interface TauriCommandMap {
   // Input object keys mirror Rust command parameters after Tauri's snake_case to
@@ -22,7 +22,7 @@ export interface TauriCommandMap {
     output: AppBootstrap;
   };
   set_app_locale: {
-    input: { locale: 'zh' | 'en' };
+    input: { locale: "zh" | "en" };
     output: AppLocalePayload;
   };
   get_install_state: {
@@ -34,7 +34,7 @@ export interface TauriCommandMap {
     output: GameDirectorySelection;
   };
   install_mod: {
-    input: { gamePath: string; compatOptIn: boolean };
+    input: { gamePath: string };
     output: InstallState;
   };
   reset_bpp_data: {
@@ -47,10 +47,6 @@ export interface TauriCommandMap {
   };
   launch_game: {
     input: { gamePath?: string };
-    output: FileActionResult;
-  };
-  cancel_tempo_launch: {
-    input: undefined;
     output: FileActionResult;
   };
   get_stream_status: {
@@ -116,8 +112,8 @@ export interface TauriCommandMap {
 }
 
 type CommandName = Extract<TauriCommandName, keyof TauriCommandMap>;
-type CommandInput<K extends CommandName> = TauriCommandMap[K]['input'];
-type CommandOutput<K extends CommandName> = TauriCommandMap[K]['output'];
+type CommandInput<K extends CommandName> = TauriCommandMap[K]["input"];
+type CommandOutput<K extends CommandName> = TauriCommandMap[K]["output"];
 type CommandArgs<K extends CommandName> =
   undefined extends CommandInput<K>
     ? [payload?: Exclude<CommandInput<K>, undefined>]
@@ -134,7 +130,7 @@ export async function invokeCommand<K extends CommandName>(
     }
     return await invoke<CommandOutput<K>>(
       name,
-      payload as Record<string, unknown>
+      payload as Record<string, unknown>,
     );
   } catch (error) {
     throw normalizeBackendError(error);
@@ -145,8 +141,8 @@ function normalizeBackendError(error: unknown): Error {
   if (error instanceof Error) {
     return error;
   }
-  if (typeof error === 'string') {
+  if (typeof error === "string") {
     return new Error(error);
   }
-  return new Error('Backend command failed.');
+  return new Error("Backend command failed.");
 }

@@ -1,11 +1,11 @@
-import { AlertTriangle, Loader2, X } from 'lucide-react';
-import { Dialog } from '../../components/ui/Dialog';
-import { useI18n } from '../../i18n/LocaleProvider';
+import { AlertTriangle, Loader2, X } from "lucide-react";
+import { Dialog } from "../../components/ui/Dialog";
+import { useI18n } from "../../i18n/LocaleProvider";
 
 export function DeleteVideoConfirmModal({
   busy,
   onClose,
-  onConfirm
+  onConfirm,
 }: {
   busy: boolean;
   onClose: () => void;
@@ -23,14 +23,14 @@ export function DeleteVideoConfirmModal({
               id="delete-video-modal-title"
               className="cinzel text-[1.1rem] text-[#f0d8d8] m-0 tracking-wider"
             >
-              {t('deleteVideoConfirmTitle')}
+              {t("deleteVideoConfirmTitle")}
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="text-[rgba(232,190,190,0.72)] hover:text-[#f0d8d8] transition-colors"
-            aria-label={t('close')}
+            aria-label={t("close")}
           >
             <X size={20} />
           </button>
@@ -38,7 +38,7 @@ export function DeleteVideoConfirmModal({
 
         <div className="p-6 flex flex-col gap-5">
           <p className="m-0 text-[13px] leading-relaxed text-[rgba(245,220,220,0.86)]">
-            {t('deleteVideoConfirmBody')}
+            {t("deleteVideoConfirmBody")}
           </p>
 
           <div className="flex justify-end gap-3 pt-2">
@@ -47,7 +47,7 @@ export function DeleteVideoConfirmModal({
               onClick={onClose}
               className="px-5 py-2 bg-[rgba(200,148,55,0.04)] border border-[rgba(180,130,48,0.2)] rounded-sm hover:bg-[rgba(200,148,55,0.1)] transition-colors text-sm text-[#e8dcc8]"
             >
-              {t('cancel')}
+              {t("cancel")}
             </button>
             <button
               type="button"
@@ -58,10 +58,10 @@ export function DeleteVideoConfirmModal({
               {busy ? (
                 <span className="inline-flex items-center gap-2">
                   <Loader2 size={14} className="animate-spin" />
-                  {t('deleteVideoConfirmAction')}
+                  {t("deleteVideoConfirmAction")}
                 </span>
               ) : (
-                t('deleteVideoConfirmAction')
+                t("deleteVideoConfirmAction")
               )}
             </button>
           </div>

@@ -1,5 +1,3 @@
-#[cfg(target_os = "windows")]
-use crate::config::STEAM_LIBRARY_FALLBACK_CANDIDATES;
 use crate::services::path::normalize_requested_game_path;
 use crate::services::paths;
 use crate::services::startup::InstallerContextState;
@@ -125,77 +123,21 @@ fn resolution(
 pub(crate) fn fallback_game_candidates() -> Vec<PathBuf> {
     let mut candidates = Vec::new();
 
-    #[cfg(target_os = "macos")]
-    {
-        if let Some(home) = dirs::home_dir() {
-            push_unique(
-                &mut candidates,
-                home.join("Library/Application Support/Tempo Launcher - Beta/game/buildx64"),
-            );
-            push_unique(
-                &mut candidates,
-                home.join("Library/Application Support/Tempo Launcher - Beta/game"),
-            );
-        }
-
-        if let Some(path) = dirs::home_dir()
-            .map(|home| home.join("Library/Application Support/Steam/steamapps/common/The Bazaar"))
-        {
-            push_unique(&mut candidates, path);
-        }
-    }
-
-    #[cfg(target_os = "linux")]
-    {
-        if let Some(home) = dirs::home_dir() {
-            push_unique(
-                &mut candidates,
-                home.join(".local/share/Steam/steamapps/common/The Bazaar"),
-            );
-            push_unique(
-                &mut candidates,
-                home.join(".steam/steam/steamapps/common/The Bazaar"),
-            );
-            push_unique(
-                &mut candidates,
-                home.join(
-                    ".var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/common/The Bazaar",
-                ),
-            );
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        for var_name in ["APPDATA", "LOCALAPPDATA"] {
-            if let Some(base) = std::env::var_os(var_name).map(PathBuf::from) {
-                push_unique(
-                    &mut candidates,
-                    base.join("Tempo Launcher - Beta")
-                        .join("game")
-                        .join("buildx64"),
-                );
-            }
-        }
-
-        use windows::Win32::Storage::FileSystem::GetLogicalDrives;
-
-        // Only probe drive letters that actually exist. The previous
-        // unconditional C..=Z scan issued ~48 `stat`s, and probing a
-        // disconnected/removable drive can stall for seconds on Windows.
-        let present = present_drive_letters(unsafe { GetLogicalDrives() });
-        for drive in present.into_iter().filter(|letter| *letter >= 'C') {
-            for root in ["Steam", "SteamLibrary"] {
-                push_unique(
-                    &mut candidates,
-                    PathBuf::from(format!("{drive}:\\{root}\\steamapps\\common\\The Bazaar")),
-                );
-            }
-        }
-
-        for candidate in STEAM_LIBRARY_FALLBACK_CANDIDATES {
-            push_unique(&mut candidates, PathBuf::from(candidate));
-        }
+    if let Some(home) = dirs::home_dir() {
+        push_unique(
+            &mut candidates,
+            home.join(".local/share/Steam/steamapps/common/The Bazaar"),
+        );
+        push_unique(
+            &mut candidates,
+            home.join(".steam/steam/steamapps/common/The Bazaar"),
+        );
+        push_unique(
+            &mut candidates,
+            home.join(
+                ".var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/common/The Bazaar",
+            ),
+        );
     }
 
     candidates
@@ -204,39 +146,5 @@ pub(crate) fn fallback_game_candidates() -> Vec<PathBuf> {
 fn push_unique(paths: &mut Vec<PathBuf>, path: PathBuf) {
     if !paths.iter().any(|existing| existing == &path) {
         paths.push(path);
-    }
-}
-
-/// Parse the bitmask returned by `GetLogicalDrives` (bit 0 = `A:`, ...,
-/// bit 25 = `Z:`) into the drive letters that currently exist. Kept pure so
-/// the bit math is unit-testable without the Win32 call.
-#[cfg_attr(not(any(target_os = "windows", test)), allow(dead_code))]
-fn present_drive_letters(bitmask: u32) -> Vec<char> {
-    ('A'..='Z')
-        .enumerate()
-        .filter(|(index, _)| bitmask & (1 << index) != 0)
-        .map(|(_, letter)| letter)
-        .collect()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::present_drive_letters;
-
-    #[test]
-    fn present_drive_letters_parses_c_and_d() {
-        // bit2 (C:) + bit3 (D:)
-        assert_eq!(present_drive_letters(0b1100), vec!['C', 'D']);
-    }
-
-    #[test]
-    fn present_drive_letters_is_empty_when_no_bits_set() {
-        assert!(present_drive_letters(0).is_empty());
-    }
-
-    #[test]
-    fn present_drive_letters_parses_a_and_z_extremes() {
-        // bit0 (A:) + bit25 (Z:) guards the enumerate/shift bounds.
-        assert_eq!(present_drive_letters(0b1 | (1 << 25)), vec!['A', 'Z']);
     }
 }

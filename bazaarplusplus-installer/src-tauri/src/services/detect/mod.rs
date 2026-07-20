@@ -20,17 +20,6 @@ pub(crate) struct InstallEnvironmentSnapshot {
     pub bepinex_installed: bool,
     pub bpp_version: Option<String>,
     pub bundled_bpp_version: Option<String>,
-    /// macOS <= 26: the "兼容模式" checkbox is offered as an opt-in. False on 27+
-    /// (forced) and off macOS.
-    pub compat_mode_available: bool,
-    /// macOS 27+: trampoline is the only working launch path (checkbox locked on).
-    pub trampoline_forced: bool,
-    /// The launch mode the install SHOULD be in: forced, or recorded by the
-    /// `.bpp-launch-mode` marker. A missing marker means prefix on <= 26.
-    pub trampoline_desired: bool,
-    /// The launch mode the bundle is ACTUALLY in right now (recomputed per call so
-    /// it never goes stale after an install / Repair / Steam "Verify integrity").
-    pub trampoline_applied: bool,
 }
 
 pub fn detect_for_install(
@@ -69,22 +58,6 @@ pub fn detect_for_install(
         .map(|path| is_bepinex_installed(path))
         .unwrap_or(false);
 
-    // Launch-mode (trampoline) detection. `trampoline_applied` is recomputed here
-    // (NOT cached in startup) so it tracks the live bundle state after an install,
-    // Repair, or Steam "Verify integrity". Err -> false is fail-safe for a bundle
-    // mid-update / unreadable.
-    let trampoline_forced = crate::services::macos_version::trampoline_forced();
-    let compat_mode_available = crate::services::macos_version::compat_mode_available();
-    let trampoline_applied = game_path
-        .as_ref()
-        .map(|path| crate::services::bepinex::is_trampolined(path).unwrap_or(false))
-        .unwrap_or(false);
-    let trampoline_desired = trampoline_forced
-        || game_path
-            .as_ref()
-            .and_then(|path| crate::services::bepinex::read_launch_mode_marker(path))
-            == Some(crate::services::bepinex::LaunchMode::Trampoline);
-
     crate::services::debug_log!(
         "[detect_environment] resolved steam_path={:?} game_path={:?} bepinex_installed={} bundled_bpp_version={:?}",
         steam_path.as_ref().map(|path| path.display().to_string()),
@@ -101,10 +74,6 @@ pub fn detect_for_install(
         bepinex_installed,
         bpp_version,
         bundled_bpp_version: startup.bundled_bpp_version.clone(),
-        compat_mode_available,
-        trampoline_forced,
-        trampoline_desired,
-        trampoline_applied,
     })
 }
 

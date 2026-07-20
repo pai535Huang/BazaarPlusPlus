@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * Holds a transient success/status message that auto-clears after `timeoutMs`.
@@ -28,7 +28,7 @@ export function useTransientMessage(timeoutMs = 3000) {
         }, timeoutMs);
       }
     },
-    [clearTimer, timeoutMs]
+    [clearTimer, timeoutMs],
   );
 
   useEffect(() => clearTimer, [clearTimer]);

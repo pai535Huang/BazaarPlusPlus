@@ -39,9 +39,8 @@ pub async fn install_mod(
     app: tauri::AppHandle,
     state: tauri::State<'_, InstallerContextState>,
     game_path: String,
-    compat_opt_in: bool,
 ) -> Result<InstallState, String> {
-    run_install(app, state, game_path, compat_opt_in).await
+    run_install(app, state, game_path).await
 }
 
 #[tauri::command]
@@ -70,11 +69,5 @@ pub fn launch_game(
     game_path: Option<String>,
 ) -> Result<FileActionResult, String> {
     launch_game_auto(app, state, game_path)?;
-    Ok(FileActionResult { ok: true })
-}
-
-#[tauri::command]
-pub fn cancel_tempo_launch() -> Result<FileActionResult, String> {
-    crate::services::tempo::request_cancel();
     Ok(FileActionResult { ok: true })
 }

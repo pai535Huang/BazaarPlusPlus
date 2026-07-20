@@ -8,7 +8,7 @@
 
 [![Version](https://img.shields.io/badge/version-4.2.0-6dd9a0?style=flat-square)](https://bazaarplusplus.com)
 [![License](https://img.shields.io/badge/license-MIT-e8c87a?style=flat-square)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%28Proton%29-c1875a?style=flat-square)](https://bazaarplusplus.com/download)
+[![Platform](https://img.shields.io/badge/platform-Linux%20%28Proton%29-c1875a?style=flat-square)](https://bazaarplusplus.com/download)
 [![BepInEx](https://img.shields.io/badge/BepInEx-5.x-8a6d3b?style=flat-square)](https://github.com/BepInEx/BepInEx)
 [![.NET](https://img.shields.io/badge/.NET-Standard%202.1-512bd4?style=flat-square)](https://learn.microsoft.com/dotnet/standard/net-standard)
 [![Tauri](https://img.shields.io/badge/Tauri-2.x-24c8d8?style=flat-square)](https://tauri.app)
@@ -18,7 +18,7 @@
 
 ---
 
-BazaarPlusPlus 是一个面向《The Bazaar》的开源项目：游戏内由 BepInEx 模组提供卡牌图鉴、对局历史、战斗回放、Tooltip 预览、匿名模式、中文术语等功能；桌面安装器负责下载、安装、修复、自动更新和直播叠层。
+BazaarPlusPlus 是一个面向《The Bazaar》Linux/Proton 环境的开源项目：游戏内由 BepInEx 模组提供卡牌图鉴、对局历史、战斗回放、Tooltip 预览、匿名模式、中文术语等功能；仓库同时保留 Linux 直装所需的共享资源树与最小辅助工具。
 
 本项目是 [BazaarPlusPlus](https://github.com/cauyxy/BazaarPlusPlus) 的分支；主要增加了对 Linux Steam 客户端的兼容性和从源码构建的流程。
 
@@ -26,36 +26,49 @@ BazaarPlusPlus 是一个面向《The Bazaar》的开源项目：游戏内由 Bep
 
 ## 快速开始
 
-### Windows / macOS
-
-1. 打开 [bazaarplusplus.com/download](https://bazaarplusplus.com/download)，选择对应系统的安装器。
-2. 关闭游戏后运行安装器；更新时建议先卸载旧版本，再安装新版本。
-3. 安装完成后启动《The Bazaar》一次，让 BazaarPlusPlus 完成初始化。
-4. 在主菜单确认「卡牌图鉴」按钮出现，且底部版本信息显示 `BPP version` 字样。
-
-详细教程、快捷键和功能说明见 [bazaarplusplus.com/tutorial](https://bazaarplusplus.com/tutorial)。
-
 ### Linux (Debian/Ubuntu)
 
-如果只是想在 Proton 环境里直接安装，可以不构建 `.deb`，而是把所需文件直接复制到 Steam 游戏目录：
+如果只是想在 Proton 环境里直接安装，可以不构建 `.deb`，而是把所需文件直接复制到 Steam 游戏目录。
 
-1. 运行最短安装命令：
-   ```bash
-   cd bazaarplusplus-mod
-   ./run.sh install --skip-build
-   ```
-2. 如果自动探测 Steam 游戏目录失败，可手动指定：
-   ```bash
-   ./run.sh install --game-dir "/path/to/steamapps/common/The Bazaar" --skip-build
-   ```
-3. 在 Steam 中打开 **库** → 右键 **The Bazaar** → **属性** → **启动选项**，填入：
-   ```bash
-   WINEDLLOVERRIDES="winhttp=n,b" %command%
-   ```
-4. 启动一次游戏后，如需确认 BepInEx 是否正常加载，可执行：
-   ```bash
-   ./run.sh proton-log
-   ```
+如果当前检出里已经包含完整的 Proton payload，可直接运行最短命令：
+
+```bash
+cd bazaarplusplus-mod
+./run.sh install --skip-build
+```
+
+如果 payload 不存在、但机器上有 .NET SDK 8+ 和 Steam 版 The Bazaar，运行不带 `--skip-build` 的安装命令即可自动构建并安装：
+
+```bash
+cd bazaarplusplus-mod
+./run.sh install --game-dir "/path/to/steamapps/common/The Bazaar"
+```
+
+也可以单独构建 payload 再安装：
+
+```bash
+cd bazaarplusplus-mod
+./run.sh build-payload --game-dir "/path/to/steamapps/common/The Bazaar"
+./run.sh install --skip-build
+```
+
+如果自动探测 Steam 游戏目录失败，可手动指定：
+
+```bash
+./run.sh install --game-dir "/path/to/steamapps/common/The Bazaar" --skip-build
+```
+
+在 Steam 中打开 **库** → 右键 **The Bazaar** → **属性** → **启动选项**，填入：
+
+```bash
+WINEDLLOVERRIDES="winhttp=n,b" %command%
+```
+
+启动一次游戏后，如需确认 BepInEx 是否正常加载，可执行：
+
+```bash
+./run.sh proton-log
+```
 
 ## 功能概览
 
@@ -70,35 +83,29 @@ BazaarPlusPlus 是一个面向《The Bazaar》的开源项目：游戏内由 Bep
 - **附魔与升级预览**：在物品 Tooltip 中直接预览附魔或升级后的效果。
 - **中文术语模式**：支持简体中文、台湾繁体、香港繁体三种术语风格。
 
-### 桌面安装器
+### Linux 安装与辅助资源
 
-- **跨平台安装**：Windows、macOS 与 Linux Steam Proton 环境，自动定位 Steam 版《The Bazaar》目录。
-- **Linux Proton 支持**：在 Linux 上使用 Windows Doorstop/BepInEx payload，并自动写入 `WINEDLLOVERRIDES="winhttp=n,b" %command%` 启动参数。
-- **修复 / 卸载 / 重置本地数据**：处理安装异常、回放数据损坏，或一键恢复到干净状态。
-- **对局历史管理**：查看、定位和清理本地保存的历史记录与回放视频。
-- **直播模式**：启动本机浏览器源服务，给 OBS 等工具显示对局信息。
-- **自动更新**：通过 Tauri Updater 检查并提示新版本。
+- **Linux Steam Proton 直装**：使用 `./run.sh install` 自动定位 Steam 版《The Bazaar》目录并复制所需 payload。
+- **修复 / 重装辅助**：保留 Linux 直装所需的共享资源树，供 `run.sh install` 与相关工具复用。
+- **直播资源**：保留直播叠层所需静态资源。
 
 ## 仓库结构
 
 ```
 .
 ├── bazaarplusplus-mod/                       # BepInEx 模组源码
-│   ├── run.sh                                # 常用 build/test/format/decompile 入口
+│   ├── run.sh                                # Linux build/install/format 入口
 │   └── src/
 │       ├── BazaarPlusPlus/                   # 主模组：Game、Patches、Resources、Data
 │       ├── BazaarPlusPlus.ModApi/            # 与服务端通信的 API 客户端
 │       ├── BazaarPlusPlus.Storage/           # 本地运行日志、截图和 SQLite 存储
 │       └── BazaarPlusPlus.Localization/      # 中文术语与本地化引擎
-└── bazaarplusplus-installer/                 # 桌面安装器
-    ├── src/                                  # Vite + React 前端
-    │   ├── pages/ features/ layouts/ api/    # 页面、业务状态、壳层和 Tauri 调用
-    │   └── types/generated/                  # Rust -> TypeScript 绑定快照
-    ├── src-tauri/                            # Tauri 2 / Rust 后端
-    │   ├── src/commands/ services/ history/  # 安装、检测、历史、直播服务
-    │   └── resources/                        # BepInEx、FFmpeg、直播叠层和安装 payload
-    ├── scripts/                              # bindings、manifest、prebuild 脚本
-    └── build.sh                              # 本地开发与发布打包入口
+└── bazaarplusplus-installer/                 # Linux 共享资源树与最小辅助工具
+    ├── src/                                  # 如仍保留本地 Linux UI，则其前端代码在这里
+    ├── src-tauri/                            # 最小 Linux Tauri 壳层与资源目录
+    │   └── resources/                        # Proton payload、FFmpeg、直播叠层等共享资源
+    ├── scripts/                              # bindings、prebuild 等辅助脚本
+    └── build.sh                              # 本地 Linux dev/build 辅助入口
 ```
 
 ## 从源码构建
@@ -107,45 +114,41 @@ BazaarPlusPlus 是一个面向《The Bazaar》的开源项目：游戏内由 Bep
 
 - **模组**：.NET SDK 8+，以及本机 Steam 版《The Bazaar》（用于解析游戏程序集引用）。
 - **安装器**：Node.js 20+、Rust 工具链、Tauri 系统依赖（见 [Tauri prerequisites](https://tauri.app/start/prerequisites/)）。
-- **Windows**：构建脚本与开发流程要求 PowerShell 7.6.0 或更高版本。
-- **Linux**：需要 Steam Linux 客户端与 Proton 版《The Bazaar》用于本地测试；生产打包会生成 `.deb`，并需要系统具备常规 Tauri Linux 打包依赖。若系统没有 `zip`，构建脚本会尝试使用 `7z` 生成 Linux payload 资源包。
+- **Linux**：需要 Steam Linux 客户端与 Proton 版《The Bazaar》用于本地测试。若使用 `./run.sh install --skip-build` 直装，当前检出还必须已经包含可复用的 Release 产物；如果没有，请在具备 .NET SDK 8+ 的环境中去掉 `--skip-build` 或先构建一次模组。若系统没有 `zip`，辅助脚本会尝试使用 `7z` 生成 Linux Proton payload 资源包。
 
 ### 构建模组
 
 ```bash
 cd bazaarplusplus-mod
 
-# 开发构建：默认会尝试解析本机游戏目录，并把 Debug DLL 拷贝到 BepInEx/plugins
-./run.sh build
+# 构建模组并刷新 installer 使用的 Proton payload（包含主插件和 BazaarAgent host）
+./run.sh build-payload --game-dir "/path/to/steamapps/common/The Bazaar"
 
-# 一次性构建 Debug + Release
-./run.sh all
+# 仅构建 Release 模组（不刷新 installer payload）
+./run.sh build
 
 # 显式指定游戏程序集目录
 dotnet build src/BazaarPlusPlus/BazaarPlusPlus.csproj \
-  -c Debug \
+  -c Release \
   -p:ManagedPath="<Steam>/steamapps/common/The Bazaar/.../Managed"
 ```
 
 ### 构建安装器
 
 ```bash
-cd bazaarplusplus-installer
+cd bazaarplusplus-mod
+./run.sh build-payload --game-dir "/path/to/steamapps/common/The Bazaar"
 
+cd ../bazaarplusplus-installer
 npm install
-npm run dev        # Vite 前端开发服务
-npm run tauri dev  # 启动完整 Tauri 桌面应用
-
 npm run check
 npm run test
 npm run format
 
-./build.sh --prod  # 本机平台生产打包；Linux 上生成 .deb
+./build.sh --prod
 ```
 
-生产打包前，脚本会同步版本、运行 prebuild 检查，并检查当前平台所需的 BepInEx payload。Linux 构建不会提交预生成 zip；`./build.sh --prod` 会从 `src-tauri/resources/SourceForBuild/windows` 生成 Proton 可用的 `BepInExSource/linux/BepInEx.zip`，再调用 Tauri 只打包 `.deb`。
-
-发布签名、公证（notarization）、R2 上传等流程依赖本地环境变量与 `signing-secrets/`，这些内容不会提交到公开仓库；Linux 本地 `.deb` 构建不需要 updater 签名密钥。在缺少本机游戏、签名凭据或平台依赖的环境中，无法完成完整的发布构建。
+`build-payload` 只刷新 installer 复用的 Proton mod payload，不生成 `.deb`。`./build.sh --prod` 会从该 payload 生成 Linux Proton 资源 zip 并构建本地 Linux app binary；不会生成 `.deb`。
 
 ## 二次开发须知
 

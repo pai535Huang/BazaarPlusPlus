@@ -1,10 +1,10 @@
-import { describe, expect, it } from 'vitest';
-import { createStreamViewModel } from './streamViewModel';
-import type { StreamServiceStatus } from '../../types/backend';
+import { describe, expect, it } from "vitest";
+import { createStreamViewModel } from "./streamViewModel";
+import type { StreamServiceStatus } from "../../types/backend";
 
 const baseStatus: StreamServiceStatus = {
   running: false,
-  host: '127.0.0.1',
+  host: "127.0.0.1",
   port: null,
   base_url: null,
   overlay_url: null,
@@ -15,62 +15,62 @@ const baseStatus: StreamServiceStatus = {
   active_window_offset: 0,
   db: {
     found: false,
-    path: null
+    path: null,
   },
   window: {
     total_records: 0,
     existing_before_start: 0,
     captured_since_start: 0,
     current_hero: null,
-    current_start_label: null
-  }
+    current_start_label: null,
+  },
 };
 
-describe('createStreamViewModel', () => {
-  it('reports a starting state while route-enter ensure is loading', () => {
+describe("createStreamViewModel", () => {
+  it("reports a starting state while route-enter ensure is loading", () => {
     const model = createStreamViewModel({
       status: baseStatus,
       loading: true,
       action: null,
-      error: null
+      error: null,
     });
 
-    expect(model.state).toBe('starting');
+    expect(model.state).toBe("starting");
     expect(model.message).toBeNull();
     expect(model.canOpenOverlay).toBe(false);
   });
 
-  it('exposes overlay and settings actions for a healthy session', () => {
+  it("exposes overlay and settings actions for a healthy session", () => {
     const model = createStreamViewModel({
       status: {
         ...baseStatus,
         running: true,
         port: 17654,
-        base_url: 'http://127.0.0.1:17654',
-        overlay_url: 'http://127.0.0.1:17654/overlay',
-        settings_url: 'http://127.0.0.1:17654/settings'
+        base_url: "http://127.0.0.1:17654",
+        overlay_url: "http://127.0.0.1:17654/overlay",
+        settings_url: "http://127.0.0.1:17654/settings",
       },
       loading: false,
       action: null,
-      error: null
+      error: null,
     });
 
-    expect(model.state).toBe('running');
-    expect(model.obsUrl).toBe('http://127.0.0.1:17654/overlay');
+    expect(model.state).toBe("running");
+    expect(model.obsUrl).toBe("http://127.0.0.1:17654/overlay");
     expect(model.canOpenOverlay).toBe(true);
     expect(model.canOpenSettings).toBe(true);
   });
 
-  it('surfaces backend errors above stale status details', () => {
+  it("surfaces backend errors above stale status details", () => {
     const model = createStreamViewModel({
-      status: { ...baseStatus, last_error: 'Port is occupied' },
+      status: { ...baseStatus, last_error: "Port is occupied" },
       loading: false,
       action: null,
-      error: 'Port is occupied'
+      error: "Port is occupied",
     });
 
-    expect(model.state).toBe('error');
-    expect(model.message).toBe('Port is occupied');
+    expect(model.state).toBe("error");
+    expect(model.message).toBe("Port is occupied");
     expect(model.canOpenOverlay).toBe(false);
   });
 });

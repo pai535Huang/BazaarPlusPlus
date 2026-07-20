@@ -2,4 +2,17 @@
 import type { StreamDbStatus } from "./StreamDbStatus";
 import type { StreamWindowStatus } from "./StreamWindowStatus";
 
-export type StreamServiceStatus = { running: boolean, host: string, port: number | null, base_url: string | null, overlay_url: string | null, settings_url: string | null, last_error: string | null, started_at: string | null, active_from: string | null, active_window_offset: number, db: StreamDbStatus, window: StreamWindowStatus, };
+export type StreamServiceStatus = {
+  running: boolean;
+  host: string;
+  port: number | null;
+  base_url: string | null;
+  overlay_url: string | null;
+  settings_url: string | null;
+  last_error: string | null;
+  started_at: string | null;
+  active_from: string | null;
+  active_window_offset: number;
+  db: StreamDbStatus;
+  window: StreamWindowStatus;
+};

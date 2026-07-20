@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   StreamOverlayCropSettingsPayload,
   StreamOverlayDisplayMode,
-  StreamServiceStatus
-} from '../../types/backend';
-import { useI18n } from '../../i18n/LocaleProvider';
-import { toErrorMessage } from '../shared/errors';
-import { useAsyncAction } from '../shared/useAsyncAction';
-import { useTransientMessage } from '../shared/useTransientMessage';
+  StreamServiceStatus,
+} from "../../types/backend";
+import { useI18n } from "../../i18n/LocaleProvider";
+import { toErrorMessage } from "../shared/errors";
+import { useAsyncAction } from "../shared/useAsyncAction";
+import { useTransientMessage } from "../shared/useTransientMessage";
 import {
   applyCropCode,
   defaultCropSettings,
@@ -19,18 +19,18 @@ import {
   restartStreamSession,
   resetCropSettings,
   saveDisplayMode,
-  setStreamWindowOffset
-} from './streamApi';
-import { createStreamViewModel } from './streamViewModel';
+  setStreamWindowOffset,
+} from "./streamApi";
+import { createStreamViewModel } from "./streamViewModel";
 
 type StreamAction =
-  | 'restart'
-  | 'copy'
-  | 'open_overlay'
-  | 'open_settings'
-  | 'crop'
-  | 'display_mode'
-  | 'window';
+  | "restart"
+  | "copy"
+  | "open_overlay"
+  | "open_settings"
+  | "crop"
+  | "display_mode"
+  | "window";
 
 export function useStreamPage() {
   const { t } = useI18n();
@@ -40,24 +40,24 @@ export function useStreamPage() {
   const [cropCode, setCropCode] = useState(defaultCropSettings.code);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useTransientMessage();
-  const [messageTone, setMessageTone] = useState<'success' | 'error'>(
-    'success'
+  const [messageTone, setMessageTone] = useState<"success" | "error">(
+    "success",
   );
   const [pollError, setPollError] = useState<string | null>(null);
   const {
     action,
     error: actionError,
     setError: setActionError,
-    run
+    run,
   } = useAsyncAction<StreamAction>();
   const error = actionError ?? pollError;
 
   const flashMessage = useCallback(
-    (next: string, tone: 'success' | 'error' = 'success') => {
+    (next: string, tone: "success" | "error" = "success") => {
       setMessageTone(tone);
       setMessage(next);
     },
-    [setMessage]
+    [setMessage],
   );
 
   const refresh = useCallback(async () => {
@@ -67,7 +67,7 @@ export function useStreamPage() {
     try {
       const [nextStatus, nextCropSettings] = await Promise.all([
         ensureStreamSession(),
-        loadCropSettings()
+        loadCropSettings(),
       ]);
       setStatus(nextStatus);
       setCropSettings(nextCropSettings);
@@ -115,100 +115,100 @@ export function useStreamPage() {
 
   const restart = useCallback(
     () =>
-      run('restart', async () => {
+      run("restart", async () => {
         setStatus(await restartStreamSession());
       }),
-    [run]
+    [run],
   );
 
   const copyObsUrl = useCallback(
     () =>
       run(
-        'copy',
+        "copy",
         async () => {
           if (!status.overlay_url) return;
           try {
             await navigator.clipboard.writeText(status.overlay_url);
-            flashMessage(t('streamCopied'));
+            flashMessage(t("streamCopied"));
           } catch {
-            flashMessage(t('streamCopyFailed'), 'error');
+            flashMessage(t("streamCopyFailed"), "error");
           }
         },
-        { onStart: () => setMessage(null) }
+        { onStart: () => setMessage(null) },
       ),
-    [flashMessage, run, setMessage, status.overlay_url, t]
+    [flashMessage, run, setMessage, status.overlay_url, t],
   );
 
   const openOverlay = useCallback(
     () =>
-      run('open_overlay', async () => {
+      run("open_overlay", async () => {
         if (status.overlay_url) {
           await openExternal(status.overlay_url);
         }
       }),
-    [run, status.overlay_url]
+    [run, status.overlay_url],
   );
 
   const openSettings = useCallback(
     () =>
-      run('open_settings', async () => {
+      run("open_settings", async () => {
         if (status.settings_url) {
           await openExternal(status.settings_url);
         }
       }),
-    [run, status.settings_url]
+    [run, status.settings_url],
   );
 
   const changeDisplayMode = useCallback(
     (displayMode: StreamOverlayDisplayMode) =>
-      run('display_mode', async () => {
+      run("display_mode", async () => {
         setCropSettings(await saveDisplayMode(displayMode));
       }),
-    [run]
+    [run],
   );
 
   const submitCropCode = useCallback(
     () =>
       run(
-        'crop',
+        "crop",
         async () => {
           const payload = await applyCropCode(cropCode.trim());
           setCropSettings(payload);
           setCropCode(payload.code);
-          flashMessage(t('streamCropSaved'));
+          flashMessage(t("streamCropSaved"));
         },
-        { onStart: () => setMessage(null) }
+        { onStart: () => setMessage(null) },
       ),
-    [cropCode, flashMessage, run, setMessage, t]
+    [cropCode, flashMessage, run, setMessage, t],
   );
 
   const resetCropCode = useCallback(
     () =>
       run(
-        'crop',
+        "crop",
         async () => {
           const payload = await resetCropSettings();
           setCropSettings(payload);
           setCropCode(payload.code);
-          flashMessage(t('streamCropReset'));
+          flashMessage(t("streamCropReset"));
         },
-        { onStart: () => setMessage(null) }
+        { onStart: () => setMessage(null) },
       ),
-    [flashMessage, run, setMessage, t]
+    [flashMessage, run, setMessage, t],
   );
 
   const moveWindow = useCallback(
     (delta: number) =>
-      run('window', async () => {
+      run("window", async () => {
         const nextOffset = Math.max(0, status.active_window_offset + delta);
         setStatus(await setStreamWindowOffset(nextOffset));
       }),
-    [run, status.active_window_offset]
+    [run, status.active_window_offset],
   );
 
   const viewModel = useMemo(
     () => createStreamViewModel({ status, loading, action, error }),
-    [action, error, loading, status]
+    [action, error, loading, status],
   );
 
   return {
@@ -229,6 +229,6 @@ export function useStreamPage() {
     changeDisplayMode,
     submitCropCode,
     resetCropCode,
-    moveWindow
+    moveWindow,
   };
 }
